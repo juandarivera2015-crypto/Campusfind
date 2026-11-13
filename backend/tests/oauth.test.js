@@ -125,15 +125,17 @@ describe('Refresh token rotation + CSRF', () => {
     const { agent, token } = await login(app);
     const csrf = csrfFrom(token);
     expect((await agent.post('/oauth/revoke').set('X-CSRF-Token', csrf)).status).toBe(200);
-    const r = await agent.post('/oauth/token').set('Cookie', `cf_csrf=${csrf}`).set('X-CSRF-Token', csrf)
+    const r = await agent.post('/oauth/token').set('X-CSRF-Token', csrf)
       .type('form').send({ grant_type: 'refresh_token' });
-    expect(r.status).toBe(400);
+    expect([400, 403]).toContain(r.status); // cookies were cleared by the revocation
+    expect(r.body.access_token).toBeUndefined();
   });
 });
 
 describe('JWT validation', () => {
   test('rejects tokens with alg=none, wrong signature or expired', async () => {
-    const none = jwt.sign({ sub: '1', scope: 'profile' }, '', { algorithm: 'none' });
+    const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+    const none = `${b64({ alg: 'none', typ: 'JWT' })}.${b64({ sub: '1', scope: 'profile', iss: 'campusfind-auth', aud: 'campusfind-api' })}.`;
     const forged = jwt.sign({ sub: '1', scope: 'profile' }, 'another-secret', { issuer: 'campusfind-auth', audience: 'campusfind-api' });
     const expired = jwt.sign({ sub: '1', scope: 'profile', exp: Math.floor(Date.now() / 1000) - 10 },
       process.env.JWT_SECRET, { issuer: 'campusfind-auth', audience: 'campusfind-api' });

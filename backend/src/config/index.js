@@ -17,6 +17,8 @@ const config = {
   isTest: env === 'test',
   port: parseInt(process.env.PORT || '3000', 10),
   publicUrl: process.env.PUBLIC_URL || 'http://localhost:3000',
+  // Secure cookies require HTTPS. Defaults to true in production; set COOKIE_SECURE=false only for plain-http local stacks.
+  cookieSecure: process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : env === 'production',
   corsOrigins: list(process.env.CORS_ORIGINS, 'http://localhost:5173,http://localhost:8080'),
   jwt: {
     secret: jwtSecret || 'dev-only-insecure-secret-change-me-please-0000',

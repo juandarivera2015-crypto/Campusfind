@@ -11,9 +11,10 @@ const CSRF_HEADER = 'x-csrf-token';
  * The attacker's site can make the browser send the cookie, but cannot read it
  * to copy it into the X-CSRF-Token header (Same-Origin Policy).
  */
-function issueCsrfToken(res, { secure }) {
-  const token = crypto.randomBytes(32).toString('base64url');
-  res.cookie(CSRF_COOKIE, token, { httpOnly: false, sameSite: 'strict', secure, path: '/' });
+function issueCsrfToken(res, { secure, maxAge, reuse }) {
+  // Keep the existing value (other tabs may hold it) but extend its lifetime with the session
+  const token = reuse || crypto.randomBytes(32).toString('base64url');
+  res.cookie(CSRF_COOKIE, token, { httpOnly: false, sameSite: 'strict', secure, path: '/', maxAge });
   return token;
 }
 

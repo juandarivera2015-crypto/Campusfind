@@ -37,7 +37,7 @@ const oauthError = (res, status, error, description) =>
   res.status(status).set('Cache-Control', 'no-store').json({ error, error_description: description });
 
 const cookieOpts = (maxAgeMs) => ({
-  httpOnly: true, secure: config.isProd, sameSite: 'strict', path: '/oauth', maxAge: maxAgeMs,
+  httpOnly: true, secure: config.cookieSecure, sameSite: 'strict', path: '/oauth', maxAge: maxAgeMs,
 });
 
 // ── Authorization Server Metadata (RFC 8414) ──
@@ -142,7 +142,7 @@ async function issueTokens(res, user, clientId, scope, familyId, t) {
   }, { transaction: t });
 
   res.cookie(REFRESH_COOKIE, refresh, cookieOpts(ttlMs));
-  if (!res.req.cookies?.[CSRF_COOKIE]) issueCsrfToken(res, { secure: config.isProd });
+  issueCsrfToken(res, { secure: config.cookieSecure, maxAge: ttlMs, reuse: res.req.cookies?.[CSRF_COOKIE] });
   return {
     row,
     body: {

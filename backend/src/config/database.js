@@ -15,8 +15,20 @@ const base = {
   pool: { max: 10, min: 0, acquire: 30000, idle: 10000 },
 };
 
+/**
+ * TLS to the database. DB_SSL_CA = path to a CA bundle; otherwise mysql2's bundled
+ * "Amazon RDS" certificate profile is used (RDS enforces require_secure_transport=1).
+ */
+function sslOptions() {
+  if (process.env.DB_SSL !== 'true') return {};
+  if (process.env.DB_SSL_CA) {
+    return { ssl: { ca: require('fs').readFileSync(process.env.DB_SSL_CA, 'utf8'), rejectUnauthorized: true } };
+  }
+  return { ssl: 'Amazon RDS' };
+}
+
 module.exports = {
-  development: base,
-  production: { ...base, dialectOptions: process.env.DB_SSL === 'true' ? { ssl: { rejectUnauthorized: true } } : {} },
+  development: { ...base, dialectOptions: sslOptions() },
+  production: { ...base, dialectOptions: sslOptions() },
   test: { dialect: 'sqlite', storage: process.env.DB_STORAGE || ':memory:', logging: false },
 };
