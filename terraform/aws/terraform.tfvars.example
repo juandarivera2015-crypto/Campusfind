@@ -1,6 +1,6 @@
 region              = "us-east-1"
 environment         = "production"
-github_repository   = "your-user/campusfind"
+github_repository   = "juandarivera2015-crypto/Campusfind"
 node_instance_types = ["t3.medium"]
 node_desired_size   = 2
 db_instance_class   = "db.t4g.micro"

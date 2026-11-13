@@ -15,6 +15,6 @@ resources:
   - networkpolicy.yaml
   - ingress.yaml
 images:
-  - { name: campusfind/api,   newName: ghcr.io/OWNER/campusfind/api,   newTag: latest }
-  - { name: campusfind/stats, newName: ghcr.io/OWNER/campusfind/stats, newTag: latest }
-  - { name: campusfind/web,   newName: ghcr.io/OWNER/campusfind/web,   newTag: latest }
+  - { name: campusfind/api,   newName: ghcr.io/juandarivera2015-crypto/campusfind/api,   newTag: latest }
+  - { name: campusfind/stats, newName: ghcr.io/juandarivera2015-crypto/campusfind/stats, newTag: latest }
+  - { name: campusfind/web,   newName: ghcr.io/juandarivera2015-crypto/campusfind/web,   newTag: latest }

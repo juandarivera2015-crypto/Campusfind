@@ -1,5 +1,5 @@
 # Require review from the maintainers for sensitive areas
-/terraform/        @OWNER
-/k8s/              @OWNER
-/.github/          @OWNER
-/backend/src/routes/oauth.js @OWNER
+/terraform/        @juandarivera2015-crypto
+/k8s/              @juandarivera2015-crypto
+/.github/          @juandarivera2015-crypto
+/backend/src/routes/oauth.js @juandarivera2015-crypto

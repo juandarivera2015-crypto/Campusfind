@@ -71,11 +71,17 @@ Con la extensión **git-flow** (`git flow init -d`) los comandos equivalentes so
    requerir PR, 1 aprobación, *status checks* (`API`, `Stats service`, `Web`, `IaC lint`, `GitFlow guard`), historial lineal en `develop`, prohibir *force push*.
 2. *Settings → Environments → production*: revisores requeridos (aprobación manual antes de desplegar).
 3. *Code security*: Dependabot alerts, secret scanning y push protection.
-4. Sustituye `@OWNER` en `.github/CODEOWNERS` por tu usuario.
+4. `.github/CODEOWNERS` ya apunta a tu usuario; añade más revisores si el equipo crece.
 
 ## Publicar el repositorio
 
+El remoto `origin` ya apunta a `github.com/juandarivera2015-crypto/Campusfind`. Para publicar la rama de integración
+y abrir la primera release:
+
 ```bash
-git remote add origin https://github.com/<tu-usuario>/campusfind.git
-git push -u origin main develop
+git push -u origin develop
+git switch -c release/2.0.0 develop && git push -u origin release/2.0.0   # PR release/2.0.0 -> main
+# tras el merge en main:
+git switch main && git pull && git tag -a v2.0.0 -m "CampusFind 2.0.0" && git push origin v2.0.0
+git switch develop && git merge --no-ff main && git push
 ```
