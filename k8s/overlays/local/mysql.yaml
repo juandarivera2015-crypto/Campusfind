@@ -1,0 +1,58 @@
+# In-cluster MySQL for local clusters only. On AWS the database is Amazon RDS (PaaS).
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+  labels: { app.kubernetes.io/name: mysql }
+spec:
+  serviceName: mysql
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: mysql }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: mysql }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: mysql
+          image: mysql:8.4
+          args: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+          env:
+            - { name: MYSQL_DATABASE, value: campusfind }
+            - { name: MYSQL_USER, value: campusfind }
+            - { name: MYSQL_PASSWORD_FILE, value: /run/secrets/campusfind/DB_PASSWORD }
+            - { name: MYSQL_ROOT_PASSWORD_FILE, value: /run/secrets/campusfind/DB_ROOT_PASSWORD }
+          ports: [{ name: mysql, containerPort: 3306 }]
+          readinessProbe:
+            exec: { command: ["sh", "-c", "mysqladmin ping -h 127.0.0.1 --silent"] }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 512Mi }
+            limits:   { cpu: "1", memory: 1Gi }
+          securityContext: { allowPrivilegeEscalation: false, capabilities: { drop: [ALL] } }
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/mysql }
+            - { name: secrets, mountPath: /run/secrets/campusfind, readOnly: true }
+      volumes:
+        - name: secrets
+          secret: { secretName: campusfind-secrets }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources: { requests: { storage: 5Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  labels: { app.kubernetes.io/name: mysql }
+spec:
+  clusterIP: None
+  selector: { app.kubernetes.io/name: mysql }
+  ports: [{ name: mysql, port: 3306 }]

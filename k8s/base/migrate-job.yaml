@@ -1,0 +1,25 @@
+# Runs Sequelize migrations once per deployment (CD waits for it before rolling out the API).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: api-migrate
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: api-migrate }
+    spec:
+      restartPolicy: OnFailure
+      securityContext: { runAsNonRoot: true, runAsUser: 1000, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: migrate
+          image: campusfind/api
+          command: ["npx", "sequelize-cli", "db:migrate"]
+          envFrom: [{ configMapRef: { name: campusfind-config } }]
+          securityContext: { allowPrivilegeEscalation: false, capabilities: { drop: [ALL] } }
+          volumeMounts:
+            - { name: secrets, mountPath: /run/secrets/campusfind, readOnly: true }
+      volumes:
+        - name: secrets
+          secret: { secretName: campusfind-secrets }

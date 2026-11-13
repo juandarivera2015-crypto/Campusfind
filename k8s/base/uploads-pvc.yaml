@@ -1,0 +1,11 @@
+# Shared storage for uploaded images. ReadWriteMany so several API replicas can share it
+# (EFS on AWS; the local overlay patches it to ReadWriteOnce).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: api-uploads
+spec:
+  accessModes: [ReadWriteMany]
+  resources:
+    requests:
+      storage: 5Gi

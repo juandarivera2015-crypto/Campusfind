@@ -1,0 +1,125 @@
+# CampusFind — full local stack
+#   docker compose up -d --build        -> http://localhost:8080  (app)
+#   Grafana http://localhost:3001  ·  Prometheus http://localhost:9090
+# Secrets are read from ./secrets/*.txt (create them with scripts/generate-secrets.sh)
+name: campusfind
+
+x-db-env: &db-env
+  DB_HOST: db
+  DB_PORT: "3306"
+  DB_NAME: campusfind
+  DB_USER: campusfind
+  DB_PASSWORD_FILE: /run/secrets/db_password
+  JWT_SECRET_FILE: /run/secrets/jwt_secret
+  JWT_ISSUER: campusfind-auth
+  JWT_AUDIENCE: campusfind-api
+
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: campusfind
+      MYSQL_USER: campusfind
+      MYSQL_PASSWORD_FILE: /run/secrets/db_password
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    secrets: [db_password, db_root_password]
+    volumes:
+      - db_data:/var/lib/mysql                  # named volume: data survives container rebuilds
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$(cat /run/secrets/db_root_password)\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [backend]
+
+  api:
+    build: ./backend
+    image: ghcr.io/${GITHUB_REPOSITORY:-campusfind/campusfind}/api:${TAG:-local}
+    restart: unless-stopped
+    environment:
+      <<: *db-env
+      NODE_ENV: production
+      PUBLIC_URL: http://localhost:8080
+      CORS_ORIGINS: http://localhost:8080
+      OAUTH_REDIRECT_URIS: http://localhost:8080/callback
+      COOKIE_SECURE: "false"      # local stack is plain http; Kubernetes/AWS (HTTPS) uses true
+    secrets: [db_password, jwt_secret]
+    volumes:
+      - uploads:/app/uploads                     # user-uploaded images
+    depends_on:
+      db: { condition: service_healthy }
+    networks: [backend, frontend]
+
+  stats:
+    build: ./stats-service
+    image: ghcr.io/${GITHUB_REPOSITORY:-campusfind/campusfind}/stats:${TAG:-local}
+    restart: unless-stopped
+    environment:
+      <<: *db-env
+      DJANGO_SECRET_KEY_FILE: /run/secrets/django_secret_key
+      DJANGO_ALLOWED_HOSTS: stats,localhost,127.0.0.1
+    secrets: [db_password, jwt_secret, django_secret_key]
+    depends_on:
+      api: { condition: service_started }        # the API runs the schema migrations
+    networks: [backend, frontend]
+
+  web:
+    build: ./frontend
+    image: ghcr.io/${GITHUB_REPOSITORY:-campusfind/campusfind}/web:${TAG:-local}
+    restart: unless-stopped
+    ports: ["8080:8080"]
+    depends_on: [api, stats]
+    networks: [frontend]
+
+  # ── Observability ──
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=15d"]
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus:ro
+      - prometheus_data:/prometheus
+    ports: ["9090:9090"]
+    networks: [backend, frontend]
+
+  mysqld-exporter:
+    image: prom/mysqld-exporter:v0.16.0
+    command: ["--config.my-cnf=/run/secrets/exporter_my_cnf", "--mysqld.address=db:3306"]
+    secrets: [exporter_my_cnf]
+    depends_on:
+      db: { condition: service_healthy }
+    networks: [backend]
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    secrets: [grafana_admin_password]
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports: ["3001:3000"]
+    depends_on: [prometheus]
+    networks: [backend]
+
+secrets:
+  db_password:            { file: ./secrets/db_password.txt }
+  db_root_password:       { file: ./secrets/db_root_password.txt }
+  jwt_secret:             { file: ./secrets/jwt_secret.txt }
+  django_secret_key:      { file: ./secrets/django_secret_key.txt }
+  grafana_admin_password: { file: ./secrets/grafana_admin_password.txt }
+  exporter_my_cnf:        { file: ./secrets/exporter.my.cnf }
+
+volumes:
+  db_data:
+  uploads:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  frontend:
+  backend:

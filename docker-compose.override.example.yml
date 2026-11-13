@@ -1,0 +1,12 @@
+# Copy to docker-compose.override.yml for development: exposes the DB and services
+# directly and seeds the demo account (demo@campusfind.edu / password123).
+services:
+  db:
+    ports: ["3306:3306"]
+  api:
+    ports: ["3000:3000"]
+    environment:
+      AUTH_RATE_LIMIT: "1000"   # relaxed for automated tests; keep the default (20/15min) in production
+    command: ["sh", "-c", "npx sequelize-cli db:migrate && npx sequelize-cli db:seed:all; node src/server.js"]
+  stats:
+    ports: ["8000:8000"]
