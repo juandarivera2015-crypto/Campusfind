@@ -1,0 +1,450 @@
+openapi: 3.0.3
+info:
+  title: CampusFind API
+  version: 2.0.0
+  description: |
+    REST API for **CampusFind**, the university lost & found portal.
+
+    * Main API: Node.js + Express + Sequelize (`/api/v1`, `/oauth`).
+    * Statistics microservice: Django + Django ORM (`/api/stats`), behind the same gateway.
+
+    ## Authentication — OAuth 2.1 + JWT
+    1. Generate a PKCE `code_verifier` and its S256 `code_challenge`.
+    2. `POST /oauth/authorize` with the user's credentials and PKCE parameters → `code`.
+    3. `POST /oauth/token` (`grant_type=authorization_code`, `code_verifier`) → JWT access token (+ refresh token in an HttpOnly cookie).
+    4. Call the API with `Authorization: Bearer <access_token>`.
+    5. Refresh with `grant_type=refresh_token` (cookie + `X-CSRF-Token` header). Refresh tokens rotate on every use.
+
+    Errors use RFC 9457 `application/problem+json`; OAuth endpoints use the OAuth error format.
+  contact: { name: CampusFind team }
+  license: { name: MIT }
+servers:
+  - url: http://localhost:8080
+    description: Docker Compose gateway (nginx)
+  - url: http://localhost:3000
+    description: Express API (local development)
+tags:
+  - name: OAuth 2.1
+  - name: Users
+  - name: Objects
+  - name: Messages
+  - name: Stats (Django)
+  - name: Health
+paths:
+  /.well-known/oauth-authorization-server:
+    get:
+      tags: [OAuth 2.1]
+      summary: Authorization server metadata (RFC 8414)
+      security: []
+      responses:
+        '200': { description: Metadata document, content: { application/json: { schema: { type: object } } } }
+  /oauth/authorize:
+    post:
+      tags: [OAuth 2.1]
+      summary: Authorization endpoint (authenticates the user, returns an authorization code)
+      description: Send `Accept application/json` to receive JSON; otherwise a 302 redirect to `redirect_uri` is returned.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/AuthorizeRequest' } }
+          application/x-www-form-urlencoded: { schema: { $ref: '#/components/schemas/AuthorizeRequest' } }
+      responses:
+        '200':
+          description: Authorization code issued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { code: { type: string }, state: { type: string }, redirect_uri: { type: string } }
+        '302': { description: Redirect to redirect_uri with code & state (or error) }
+        '400': { $ref: '#/components/responses/OAuthError' }
+        '401': { $ref: '#/components/responses/OAuthError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /oauth/token:
+    post:
+      tags: [OAuth 2.1]
+      summary: Token endpoint (authorization_code + PKCE, refresh_token with rotation)
+      security: []
+      parameters:
+        - in: header
+          name: X-CSRF-Token
+          required: false
+          description: Required for `grant_type=refresh_token` (must equal the `cf_csrf` cookie).
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded: { schema: { $ref: '#/components/schemas/TokenRequest' } }
+          application/json: { schema: { $ref: '#/components/schemas/TokenRequest' } }
+      responses:
+        '200':
+          description: Tokens issued. The refresh token is set in the `cf_rt` HttpOnly cookie.
+          headers:
+            Set-Cookie: { schema: { type: string } }
+          content: { application/json: { schema: { $ref: '#/components/schemas/TokenResponse' } } }
+        '400': { $ref: '#/components/responses/OAuthError' }
+        '403': { $ref: '#/components/responses/OAuthError' }
+  /oauth/revoke:
+    post:
+      tags: [OAuth 2.1]
+      summary: Revoke the refresh-token family (logout)
+      security: []
+      parameters:
+        - { in: header, name: X-CSRF-Token, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Revoked }
+        '403': { $ref: '#/components/responses/Problem' }
+
+  /api/v1/users:
+    post:
+      tags: [Users]
+      summary: Register a new account
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/RegisterRequest' } }
+      responses:
+        '201':
+          description: Created
+          headers: { Location: { schema: { type: string } } }
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { message: { type: string }, data: { $ref: '#/components/schemas/User' } }
+        '400': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /api/v1/users/me:
+    get:
+      tags: [Users]
+      summary: Current user profile
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/User' } } } } }
+        '401': { $ref: '#/components/responses/Problem' }
+
+  /api/v1/objects:
+    get:
+      tags: [Objects]
+      summary: Search lost & found objects
+      security: []
+      parameters:
+        - { in: query, name: keyword, schema: { type: string, maxLength: 100 } }
+        - { in: query, name: category, schema: { $ref: '#/components/schemas/Category' } }
+        - { in: query, name: status, schema: { $ref: '#/components/schemas/Status' } }
+        - { in: query, name: location, schema: { type: string, maxLength: 100 } }
+        - { in: query, name: date, schema: { type: string, format: date } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+        - { in: query, name: offset, schema: { type: integer, minimum: 0, default: 0 } }
+      responses:
+        '200':
+          description: Paginated list
+          content: { application/json: { schema: { $ref: '#/components/schemas/ObjectList' } } }
+        '400': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [Objects]
+      summary: Report a lost or found object
+      requestBody:
+        required: true
+        content:
+          multipart/form-data: { schema: { $ref: '#/components/schemas/ObjectCreate' } }
+      responses:
+        '201':
+          description: Created
+          headers: { Location: { schema: { type: string } } }
+          content:
+            application/json:
+              schema: { type: object, properties: { message: { type: string }, data: { $ref: '#/components/schemas/LostObject' } } }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '413': { $ref: '#/components/responses/Problem' }
+  /api/v1/objects/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      tags: [Objects]
+      summary: Get one object
+      security: []
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/LostObject' } } } } } }
+        '404': { $ref: '#/components/responses/Problem' }
+    patch:
+      tags: [Objects]
+      summary: Update an object (owner only)
+      requestBody:
+        content:
+          multipart/form-data: { schema: { $ref: '#/components/schemas/ObjectUpdate' } }
+          application/json: { schema: { $ref: '#/components/schemas/ObjectUpdate' } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/LostObject' } } } } } }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [Objects]
+      summary: Delete an object (owner only)
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+
+  /api/v1/messages:
+    get:
+      tags: [Messages]
+      summary: Inbox of the authenticated user
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/Message' } }
+                  unread: { type: integer }
+        '401': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [Messages]
+      summary: Contact the owner of an object
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [object_id, message]
+              additionalProperties: false
+              properties:
+                object_id: { type: integer, minimum: 1 }
+                message: { type: string, minLength: 1, maxLength: 2000 }
+      responses:
+        '201': { description: Sent }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/v1/messages/read:
+    post:
+      tags: [Messages]
+      summary: Mark the whole inbox as read
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { updated: { type: integer } } } } } }
+  /api/v1/messages/{id}:
+    patch:
+      tags: [Messages]
+      summary: Mark a message read/unread (receiver only)
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [is_read], properties: { is_read: { type: boolean } } }
+      responses:
+        '200': { description: OK }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+
+  /api/stats/summary/:
+    get:
+      tags: [Stats (Django)]
+      summary: Global totals (public)
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { total: { type: integer }, lost: { type: integer }, found: { type: integer }, users: { type: integer } }
+  /api/stats/by-category/:
+    get:
+      tags: [Stats (Django)]
+      summary: Reports grouped by category and status (public)
+      security: []
+      responses:
+        '200': { description: OK }
+  /api/stats/timeline/:
+    get:
+      tags: [Stats (Django)]
+      summary: Reports per day for the last N days (public)
+      security: []
+      parameters:
+        - { in: query, name: days, schema: { type: integer, minimum: 1, maximum: 365, default: 30 } }
+      responses:
+        '200': { description: OK }
+  /api/stats/me/:
+    get:
+      tags: [Stats (Django)]
+      summary: Statistics for the authenticated user (JWT validated by Django)
+      responses:
+        '200': { description: OK }
+        '401': { description: Missing or invalid token }
+
+  /health/live:
+    get: { tags: [Health], summary: Liveness probe, security: [], responses: { '200': { description: OK } } }
+  /health/ready:
+    get: { tags: [Health], summary: Readiness probe (checks DB), security: [], responses: { '200': { description: Ready }, '503': { description: Not ready } } }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token obtained from /oauth/token
+    oauth2:
+      type: oauth2
+      description: OAuth 2.1 authorization code flow with PKCE (S256)
+      flows:
+        authorizationCode:
+          authorizationUrl: /oauth/authorize
+          tokenUrl: /oauth/token
+          refreshUrl: /oauth/token
+          scopes:
+            profile: Read your profile
+            objects:read: Read objects
+            objects:write: Create, edit and delete your objects
+            messages:read: Read your inbox
+            messages:write: Send messages
+  responses:
+    Problem:
+      description: RFC 9457 problem details
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+    OAuthError:
+      description: OAuth 2.1 error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties: { error: { type: string }, error_description: { type: string } }
+    TooManyRequests:
+      description: Rate limit exceeded
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+  schemas:
+    Category:
+      type: string
+      enum: [Electronics, Clothing, Documents, Keys, Bags & Backpacks, Books, Glasses, Jewelry, Sports, Other]
+    Status:
+      type: string
+      enum: [lost, found]
+    Problem:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        errors:
+          type: array
+          items: { type: object, properties: { field: { type: string }, message: { type: string } } }
+    AuthorizeRequest:
+      type: object
+      required: [response_type, client_id, redirect_uri, code_challenge, code_challenge_method, state, email, password]
+      properties:
+        response_type: { type: string, enum: [code] }
+        client_id: { type: string, example: campusfind-web }
+        redirect_uri: { type: string, example: 'http://localhost:8080/callback' }
+        code_challenge: { type: string, description: 'BASE64URL(SHA256(code_verifier))' }
+        code_challenge_method: { type: string, enum: [S256] }
+        state: { type: string, minLength: 8 }
+        scope: { type: string, example: 'profile objects:read objects:write messages:read messages:write' }
+        email: { type: string, format: email, example: demo@campusfind.edu }
+        password: { type: string, format: password, example: password123 }
+    TokenRequest:
+      type: object
+      required: [grant_type]
+      properties:
+        grant_type: { type: string, enum: [authorization_code, refresh_token] }
+        code: { type: string }
+        code_verifier: { type: string, minLength: 43, maxLength: 128 }
+        client_id: { type: string }
+        redirect_uri: { type: string }
+    TokenResponse:
+      type: object
+      properties:
+        access_token: { type: string }
+        token_type: { type: string, example: Bearer }
+        expires_in: { type: integer, example: 900 }
+        scope: { type: string }
+    RegisterRequest:
+      type: object
+      required: [name, email, password]
+      additionalProperties: false
+      properties:
+        name: { type: string, maxLength: 100 }
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8, maxLength: 128, format: password }
+        confirm_password: { type: string }
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        created_at: { type: string, format: date-time }
+    LostObject:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        description: { type: string }
+        image: { type: string, nullable: true, example: uploads/obj_1b2c.jpg }
+        location: { type: string }
+        category: { $ref: '#/components/schemas/Category' }
+        date: { type: string, format: date }
+        status: { $ref: '#/components/schemas/Status' }
+        contact_email: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        user_id: { type: integer }
+        user_name: { type: string }
+    ObjectList:
+      type: object
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/LostObject' } }
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+    ObjectCreate:
+      type: object
+      required: [name, description, location, date]
+      properties:
+        name: { type: string, maxLength: 150 }
+        description: { type: string, maxLength: 5000 }
+        location: { type: string, maxLength: 200 }
+        category: { $ref: '#/components/schemas/Category' }
+        date: { type: string, format: date }
+        status: { $ref: '#/components/schemas/Status' }
+        contact_email: { type: string, format: email }
+        image: { type: string, format: binary, description: 'JPG, PNG, GIF or WebP, max 5 MB' }
+    ObjectUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string }
+        location: { type: string }
+        category: { $ref: '#/components/schemas/Category' }
+        date: { type: string, format: date }
+        status: { $ref: '#/components/schemas/Status' }
+        contact_email: { type: string, format: email }
+        image: { type: string, format: binary }
+    Message:
+      type: object
+      properties:
+        id: { type: integer }
+        object_id: { type: integer }
+        message: { type: string }
+        is_read: { type: boolean }
+        created_at: { type: string, format: date-time }
+        sender_id: { type: integer }
+        sender_name: { type: string }
+        sender_email: { type: string }
+        object_name: { type: string }
+        object_status: { $ref: '#/components/schemas/Status' }
+security:
+  - bearerAuth: []

@@ -1,0 +1,2 @@
+<!-- Shared navbar snippet — included via JS injection in each page -->
+<!-- Actually inlined in each HTML file for simplicity with XAMPP -->

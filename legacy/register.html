@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up — CampusFind</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='28'>🔍</text></svg>">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="register">
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="spinner-cf"></div>
+  </div>
+
+  <div class="auth-page">
+    <div class="container px-3">
+      <div class="auth-card">
+
+        <!-- Logo -->
+        <div class="auth-logo">🔍 CampusFind</div>
+        <div class="auth-subtitle">Create your student account</div>
+
+        <!-- Alert -->
+        <div id="register-alert" class="alert-cf"></div>
+
+        <!-- Form -->
+        <form id="register-form" novalidate>
+          <div class="mb-3">
+            <label class="form-label-cf">Full Name</label>
+            <input type="text" name="name" class="form-control-cf" placeholder="Your full name" required autocomplete="name">
+          </div>
+          <div class="mb-3">
+            <label class="form-label-cf">Email Address</label>
+            <input type="email" name="email" class="form-control-cf" placeholder="you@university.edu" required autocomplete="email">
+          </div>
+          <div class="mb-3">
+            <label class="form-label-cf">Password</label>
+            <input type="password" name="password" class="form-control-cf" placeholder="At least 6 characters" required autocomplete="new-password">
+          </div>
+          <div class="mb-4">
+            <label class="form-label-cf">Confirm Password</label>
+            <input type="password" name="confirm_password" class="form-control-cf" placeholder="Repeat your password" required autocomplete="new-password">
+          </div>
+          <button type="submit" class="btn-primary-cf w-100" style="padding:0.75rem;font-size:1rem;">
+            Create Account
+          </button>
+        </form>
+
+        <!-- Divider -->
+        <div style="text-align:center;margin:1.5rem 0;font-size:0.8rem;color:#aaa;">
+          ─── or ───
+        </div>
+
+        <p style="text-align:center;font-size:0.875rem;color:#666;">
+          Already have an account?
+          <a href="login.html" style="color:var(--primary);font-weight:700;text-decoration:none;">Log In</a>
+        </p>
+
+        <p style="text-align:center;margin-top:0.5rem;">
+          <a href="index.html" style="color:#aaa;font-size:0.8rem;text-decoration:none;">← Back to Dashboard</a>
+        </p>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
