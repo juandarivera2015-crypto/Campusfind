@@ -1,0 +1,26 @@
+# Enforces GitFlow: which branches may open PRs into main/develop, and branch naming.
+name: GitFlow guard
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate source/target branches
+        env:
+          HEAD: ${{ github.head_ref }}
+          BASE: ${{ github.base_ref }}
+        run: |
+          echo "PR: $HEAD -> $BASE"
+          if [ "$BASE" = "main" ]; then
+            [[ "$HEAD" =~ ^(release|hotfix)/ ]] || { echo "::error::Only release/* or hotfix/* may merge into main"; exit 1; }
+          elif [ "$BASE" = "develop" ]; then
+            [[ "$HEAD" =~ ^(feature|bugfix|release|hotfix|dependabot)/ ]] || { echo "::error::Use feature/*, bugfix/*, release/* or hotfix/* for develop"; exit 1; }
+          fi
+          [[ "$HEAD" =~ ^(feature|bugfix|release|hotfix|dependabot)/[a-z0-9._/-]+$ ]] || { echo "::error::Branch name must be lowercase, e.g. feature/123-short-name"; exit 1; }

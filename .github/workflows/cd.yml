@@ -1,0 +1,98 @@
+# Continuous Delivery — main = staging/production release, tags v* = versioned release.
+# Auth to AWS uses GitHub OIDC (no static keys). Required repository variables:
+#   AWS_REGION, AWS_DEPLOY_ROLE_ARN, EKS_CLUSTER, ECR_REGISTRY, RDS_ENDPOINT, EFS_FILE_SYSTEM_ID,
+#   EXTERNAL_SECRETS_ROLE_ARN, APP_DOMAIN, ACM_CERTIFICATE_ARN   (all from `terraform output`)
+name: CD
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write   # OIDC
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  build-push:
+    name: Build & push images to ECR
+    runs-on: ubuntu-latest
+    environment: production
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+    strategy:
+      matrix:
+        include:
+          - { name: api, context: backend }
+          - { name: stats, context: stats-service }
+          - { name: web, context: frontend }
+    steps:
+      - uses: actions/checkout@v4
+      - id: meta
+        run: echo "tag=${GITHUB_REF_NAME//\//-}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          push: true
+          provenance: true
+          sbom: true
+          tags: ${{ vars.ECR_REGISTRY }}/campusfind-${{ matrix.name }}:${{ steps.meta.outputs.tag }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  deploy:
+    name: Deploy to EKS
+    needs: build-push
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://${{ vars.APP_DOMAIN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - run: aws eks update-kubeconfig --name "${{ vars.EKS_CLUSTER }}" --region "${{ vars.AWS_REGION }}"
+      - name: Fill overlay placeholders
+        working-directory: k8s/overlays/aws
+        env:
+          TAG: ${{ needs.build-push.outputs.tag }}
+        run: |
+          sed -i \
+            -e "s#ECR_REGISTRY#${{ vars.ECR_REGISTRY }}#g" \
+            -e "s#IMAGE_TAG#${TAG}#g" \
+            -e "s#RDS_ENDPOINT#${{ vars.RDS_ENDPOINT }}#g" \
+            -e "s#EFS_FILE_SYSTEM_ID#${{ vars.EFS_FILE_SYSTEM_ID }}#g" \
+            -e "s#EXTERNAL_SECRETS_ROLE_ARN#${{ vars.EXTERNAL_SECRETS_ROLE_ARN }}#g" \
+            -e "s#AWS_REGION#${{ vars.AWS_REGION }}#g" \
+            -e "s#ACM_CERTIFICATE_ARN#${{ vars.ACM_CERTIFICATE_ARN }}#g" \
+            -e "s#APP_DOMAIN#${{ vars.APP_DOMAIN }}#g" \
+            *.yaml
+          kubectl kustomize . > /tmp/manifests.yaml
+      - name: Run database migrations
+        run: |
+          kubectl delete job api-migrate -n campusfind --ignore-not-found
+          # 1) everything except the app workloads/services (namespace, config, secrets, PVC, the migrate Job...)
+          kubectl apply -f /tmp/manifests.yaml -l 'app.kubernetes.io/name notin (api,stats,web)'
+          kubectl wait --for=condition=complete job/api-migrate -n campusfind --timeout=300s
+      - name: Roll out (2) workloads with the new image tag
+        run: |
+          kubectl apply -f /tmp/manifests.yaml
+          for d in api stats web; do kubectl rollout status deployment/$d -n campusfind --timeout=300s; done
+      - name: Smoke test
+        run: |
+          curl -fsS https://${{ vars.APP_DOMAIN }}/nginx-health
+          curl -fsS https://${{ vars.APP_DOMAIN }}/api/v1/objects?limit=1 > /dev/null
+          curl -fsS https://${{ vars.APP_DOMAIN }}/api/stats/summary/

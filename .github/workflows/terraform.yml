@@ -1,0 +1,37 @@
+name: Terraform
+
+on:
+  pull_request:
+    paths: ['terraform/**']
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Apply the plan
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.apply && 'production' || 'plan' }}
+    defaults: { run: { working-directory: terraform/aws } }
+    env:
+      TF_VAR_github_repository: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - run: terraform fmt -check
+      - run: terraform init -input=false
+      - run: terraform validate
+      - run: terraform plan -input=false -out=tfplan
+      - if: inputs.apply
+        run: terraform apply -input=false tfplan

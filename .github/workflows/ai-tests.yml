@@ -1,0 +1,33 @@
+# AI-assisted testing: Claude reads the OpenAPI contract and proposes new edge-case /
+# security test cases. Generated cases are uploaded for human review before being committed
+# to ai-testing/cases/ (they are never trusted blindly).
+name: AI test generation
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 6 * * 1'   # Mondays
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    if: ${{ vars.AI_TESTING_ENABLED == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Generate cases with Claude
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node ai-testing/generate-cases.mjs --spec backend/src/docs/openapi.yaml --out ai-testing/generated/cases.ai.json
+      - name: Run them against an ephemeral stack
+        run: |
+          ./scripts/generate-secrets.sh
+          cp docker-compose.override.example.yml docker-compose.override.yml
+          docker compose up -d --build --wait db api stats web
+          node ai-testing/run-cases.mjs --base-url http://localhost:8080 --cases ai-testing/generated --junit ai-report.xml || true
+      - uses: actions/upload-artifact@v4
+        with: { name: ai-generated-tests, path: 'ai-testing/generated/ ai-report.xml' }
