@@ -22,6 +22,8 @@ jobs:
   build-push:
     name: Build & push images to ECR
     runs-on: ubuntu-latest
+    # Skipped until the AWS infrastructure exists and the repository variables are configured
+    if: vars.AWS_DEPLOY_ROLE_ARN != ''
     environment: production
     outputs:
       tag: ${{ steps.meta.outputs.tag }}

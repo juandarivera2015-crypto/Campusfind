@@ -18,6 +18,7 @@ permissions:
 jobs:
   plan:
     runs-on: ubuntu-latest
+    if: vars.AWS_TERRAFORM_ROLE_ARN != ''   # skipped until AWS credentials are configured
     environment: ${{ inputs.apply && 'production' || 'plan' }}
     defaults: { run: { working-directory: terraform/aws } }
     env:
