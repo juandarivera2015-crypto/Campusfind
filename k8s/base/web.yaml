@@ -33,10 +33,13 @@ spec:
           volumeMounts:
             - { name: tmp, mountPath: /tmp }
             - { name: cache, mountPath: /var/cache/nginx }
+            - { name: confd, mountPath: /etc/nginx/conf.d }   # rendered from the template at start-up
       volumes:
         - name: tmp
           emptyDir: {}
         - name: cache
+          emptyDir: {}
+        - name: confd
           emptyDir: {}
 ---
 apiVersion: v1

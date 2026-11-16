@@ -96,4 +96,4 @@ Se implementó **React**. Angular y Vue.js consumirían exactamente la misma API
 | Escapado XSS | JSX escapa por defecto | Interpolación `{{ }}` escapa; evitar `bypassSecurityTrust*` | `{{ }}` escapa; evitar `v-html` |
 | PKCE | `auth/pkce.js` (Web Crypto) | Igual (o `angular-oauth2-oidc`) | Igual (o `oidc-client-ts`) |
 
-Para cambiar de framework basta con reemplazar `frontend/` manteniendo `nginx.conf` y el `Dockerfile` (build estático + nginx).
+Para cambiar de framework basta con reemplazar `frontend/` manteniendo `nginx/default.conf.template` y el `Dockerfile` (build estático + nginx).
