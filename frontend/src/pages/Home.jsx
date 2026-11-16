@@ -105,7 +105,7 @@ export default function Home() {
               <label className="form-label mb-1" style={labelStyle} htmlFor="filter-category">Category</label>
               <select id="filter-category" className="form-select" value={filters.category} onChange={set('category')}>
                 <option value="">All Categories</option>
-                {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div className="col-6 col-md-2">

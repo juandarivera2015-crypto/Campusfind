@@ -84,7 +84,7 @@ export default function Report() {
                     <label className="form-label-cf" htmlFor="category">Category {req}</label>
                     <select id="category" className="form-select-cf" required value={form.category} onChange={set('category')}>
                       <option value="" disabled>Select a category</option>
-                      {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                      {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div className="col-md-6">
