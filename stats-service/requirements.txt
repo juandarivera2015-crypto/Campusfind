@@ -1,7 +1,7 @@
 # Common dependencies (also what Vercel installs). Postgres driver for Neon.
 Django>=5.2,<5.3
 djangorestframework>=3.15,<4
-drf-spectacular>=0.27,<1
+drf-spectacular>=0.30.0,<1
 PyJWT>=2.9,<3
 psycopg[binary]>=3.2,<4
 django-prometheus>=2.3,<3
