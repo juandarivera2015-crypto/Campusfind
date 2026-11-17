@@ -1,0 +1,24 @@
+# Non-sensitive configuration. Sensitive values live in the "campusfind-secrets" Secret
+# (created by the overlay: secretGenerator locally, ExternalSecret on AWS).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: campusfind-config
+data:
+  NODE_ENV: production
+  COOKIE_SECURE: "true"
+  DB_HOST: mysql
+  DB_PORT: "3306"
+  DB_NAME: campusfind
+  DB_USER: campusfind
+  DB_SSL: "false"
+  JWT_ISSUER: campusfind-auth
+  JWT_AUDIENCE: campusfind-api
+  PUBLIC_URL: https://campusfind.local
+  CORS_ORIGINS: https://campusfind.local
+  OAUTH_REDIRECT_URIS: https://campusfind.local/callback
+  DJANGO_ALLOWED_HOSTS: "*"
+  # Secrets are mounted as files (never as plain env vars that leak via /proc or crash dumps)
+  DB_PASSWORD_FILE: /run/secrets/campusfind/DB_PASSWORD
+  JWT_SECRET_FILE: /run/secrets/campusfind/JWT_SECRET
+  DJANGO_SECRET_KEY_FILE: /run/secrets/campusfind/DJANGO_SECRET_KEY

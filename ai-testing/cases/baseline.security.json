@@ -1,0 +1,481 @@
+{
+  "description": "Hand-written baseline security cases (same format the AI generator produces).",
+  "cases": [
+    {
+      "name": "SQLi tautology in keyword",
+      "category": "injection",
+      "owasp": "API8:2023 / A03 Injection",
+      "method": "GET",
+      "path": "/api/v1/objects",
+      "auth": "none",
+      "query": {
+        "keyword": "' OR '1'='1' -- "
+      },
+      "expect": {
+        "status": [
+          200
+        ],
+        "bodyNotContains": [
+          "SQL",
+          "sequelize",
+          "ER_"
+        ]
+      }
+    },
+    {
+      "name": "SQLi UNION in location",
+      "category": "injection",
+      "owasp": "A03 Injection",
+      "method": "GET",
+      "path": "/api/v1/objects",
+      "auth": "none",
+      "query": {
+        "location": "x' UNION SELECT email,password FROM users -- "
+      },
+      "expect": {
+        "status": [
+          200
+        ],
+        "bodyNotContains": [
+          "$2y$",
+          "$2b$"
+        ]
+      }
+    },
+    {
+      "name": "SQLi in path id",
+      "category": "injection",
+      "owasp": "A03 Injection",
+      "method": "GET",
+      "path": "/api/v1/objects/1%20OR%201=1",
+      "auth": "none",
+      "expect": {
+        "status": [
+          404
+        ]
+      }
+    },
+    {
+      "name": "SQLi in stats days",
+      "category": "injection",
+      "owasp": "A03 Injection",
+      "method": "GET",
+      "path": "/api/stats/timeline/",
+      "auth": "none",
+      "query": {
+        "days": "30; DROP TABLE users"
+      },
+      "expect": {
+        "status": [
+          400
+        ]
+      }
+    },
+    {
+      "name": "Enum injection in status",
+      "category": "validation",
+      "owasp": "API8:2023",
+      "method": "GET",
+      "path": "/api/v1/objects",
+      "auth": "none",
+      "query": {
+        "status": "lost' OR 1=1"
+      },
+      "expect": {
+        "status": [
+          400
+        ]
+      }
+    },
+    {
+      "name": "Path traversal in uploads",
+      "category": "injection",
+      "owasp": "A01 Broken Access Control",
+      "method": "GET",
+      "path": "/uploads/..%2f..%2fpackage.json",
+      "auth": "none",
+      "expect": {
+        "status": [
+          400,
+          403,
+          404
+        ],
+        "bodyNotContains": [
+          "\"dependencies\""
+        ]
+      }
+    },
+    {
+      "name": "Stored XSS payload is returned as JSON, not HTML",
+      "category": "xss",
+      "owasp": "A03 Injection (XSS)",
+      "method": "POST",
+      "path": "/api/v1/objects",
+      "auth": "user",
+      "multipart": {
+        "name": "<script>alert(1)</script>",
+        "description": "<img src=x onerror=alert(1)>",
+        "location": "Lab",
+        "date": "2026-11-01"
+      },
+      "expect": {
+        "status": [
+          201
+        ],
+        "headers": {
+          "content-type": "application/json",
+          "x-content-type-options": "nosniff"
+        }
+      }
+    },
+    {
+      "name": "No token on protected route",
+      "category": "auth",
+      "owasp": "API2:2023 Broken Authentication",
+      "method": "GET",
+      "path": "/api/v1/messages",
+      "auth": "none",
+      "expect": {
+        "status": [
+          401
+        ],
+        "headers": {
+          "www-authenticate": "Bearer"
+        }
+      }
+    },
+    {
+      "name": "JWT alg=none rejected",
+      "category": "auth",
+      "owasp": "API2:2023",
+      "method": "GET",
+      "path": "/api/v1/users/me",
+      "auth": "none",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIxIiwic2NvcGUiOiJwcm9maWxlIn0."
+      },
+      "expect": {
+        "status": [
+          401
+        ]
+      }
+    },
+    {
+      "name": "Malformed bearer",
+      "category": "auth",
+      "owasp": "API2:2023",
+      "method": "GET",
+      "path": "/api/v1/users/me",
+      "auth": "none",
+      "headers": {
+        "Authorization": "Bearer not.a.jwt"
+      },
+      "expect": {
+        "status": [
+          401
+        ]
+      }
+    },
+    {
+      "name": "Token in query string is ignored",
+      "category": "auth",
+      "owasp": "OAuth 2.1 \u00a75",
+      "method": "GET",
+      "path": "/api/v1/users/me",
+      "auth": "none",
+      "query": {
+        "access_token": "anything"
+      },
+      "expect": {
+        "status": [
+          401
+        ]
+      }
+    },
+    {
+      "name": "BOLA delete other user's object",
+      "category": "bola",
+      "owasp": "API1:2023 BOLA",
+      "method": "DELETE",
+      "path": "/api/v1/objects/{{objectId}}",
+      "auth": "user",
+      "expect": {
+        "status": [
+          403
+        ]
+      }
+    },
+    {
+      "name": "BOLA patch other user's object",
+      "category": "bola",
+      "owasp": "API1:2023 BOLA",
+      "method": "PATCH",
+      "path": "/api/v1/objects/{{objectId}}",
+      "auth": "user",
+      "json": {
+        "name": "hijacked"
+      },
+      "expect": {
+        "status": [
+          403
+        ]
+      }
+    },
+    {
+      "name": "Mass assignment of user_id on update",
+      "category": "mass-assignment",
+      "owasp": "API3:2023 BOPLA",
+      "method": "PATCH",
+      "path": "/api/v1/objects/{{ownObjectId}}",
+      "auth": "user",
+      "json": {
+        "user_id": 1
+      },
+      "expect": {
+        "status": [
+          400
+        ]
+      }
+    },
+    {
+      "name": "Mass assignment on registration",
+      "category": "mass-assignment",
+      "owasp": "API3:2023 BOPLA",
+      "method": "POST",
+      "path": "/api/v1/users",
+      "auth": "none",
+      "json": {
+        "name": "x",
+        "email": "mass@ai-tests.local",
+        "password": "LongEnough#1",
+        "id": 1
+      },
+      "expect": {
+        "status": [
+          400
+        ]
+      }
+    },
+    {
+      "name": "Pagination limit abuse",
+      "category": "resource-consumption",
+      "owasp": "API4:2023",
+      "method": "GET",
+      "path": "/api/v1/objects",
+      "auth": "none",
+      "query": {
+        "limit": "1000000"
+      },
+      "expect": {
+        "status": [
+          400
+        ]
+      }
+    },
+    {
+      "name": "Negative offset",
+      "category": "resource-consumption",
+      "owasp": "API4:2023",
+      "method": "GET",
+      "path": "/api/v1/objects",
+      "auth": "none",
+      "query": {
+        "offset": "-1"
+      },
+      "expect": {
+        "status": [
+          400
+        ]
+      }
+    },
+    {
+      "name": "Huge message body",
+      "category": "resource-consumption",
+      "owasp": "API4:2023",
+      "method": "POST",
+      "path": "/api/v1/messages",
+      "auth": "user",
+      "json": {
+        "object_id": "{{objectId}}",
+        "message": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      },
+      "expect": {
+        "status": [
+          400
+        ]
+      }
+    },
+    {
+      "name": "Message to own object",
+      "category": "business-logic",
+      "owasp": "API6:2023",
+      "method": "POST",
+      "path": "/api/v1/messages",
+      "auth": "user",
+      "json": {
+        "object_id": "{{ownObjectId}}",
+        "message": "hi me"
+      },
+      "expect": {
+        "status": [
+          400
+        ]
+      }
+    },
+    {
+      "name": "OAuth plain PKCE rejected",
+      "category": "auth",
+      "owasp": "OAuth 2.1 PKCE",
+      "method": "POST",
+      "path": "/oauth/authorize",
+      "auth": "none",
+      "headers": {
+        "Accept": "application/json"
+      },
+      "json": {
+        "response_type": "code",
+        "client_id": "campusfind-web",
+        "redirect_uri": "http://localhost:8080/callback",
+        "code_challenge": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "code_challenge_method": "plain",
+        "state": "abcdefgh",
+        "email": "a@b.c",
+        "password": "x"
+      },
+      "expect": {
+        "status": [
+          400
+        ]
+      }
+    },
+    {
+      "name": "OAuth open redirect blocked",
+      "category": "auth",
+      "owasp": "OAuth 2.1 redirect_uri",
+      "method": "POST",
+      "path": "/oauth/authorize",
+      "auth": "none",
+      "form": {
+        "response_type": "code",
+        "client_id": "campusfind-web",
+        "redirect_uri": "https://evil.example/cb",
+        "code_challenge": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "code_challenge_method": "S256",
+        "state": "abcdefgh",
+        "email": "a@b.c",
+        "password": "x"
+      },
+      "expect": {
+        "status": [
+          400
+        ]
+      }
+    },
+    {
+      "name": "Implicit grant not supported",
+      "category": "auth",
+      "owasp": "OAuth 2.1",
+      "method": "POST",
+      "path": "/oauth/authorize",
+      "auth": "none",
+      "headers": {
+        "Accept": "application/json"
+      },
+      "json": {
+        "response_type": "token",
+        "client_id": "campusfind-web",
+        "redirect_uri": "http://localhost:8080/callback"
+      },
+      "expect": {
+        "status": [
+          400
+        ]
+      }
+    },
+    {
+      "name": "Password grant not supported",
+      "category": "auth",
+      "owasp": "OAuth 2.1",
+      "method": "POST",
+      "path": "/oauth/token",
+      "auth": "none",
+      "form": {
+        "grant_type": "password",
+        "username": "a@b.c",
+        "password": "x"
+      },
+      "expect": {
+        "status": [
+          400
+        ]
+      }
+    },
+    {
+      "name": "Refresh without CSRF header",
+      "category": "auth",
+      "owasp": "A01 CSRF",
+      "method": "POST",
+      "path": "/oauth/token",
+      "auth": "none",
+      "form": {
+        "grant_type": "refresh_token"
+      },
+      "expect": {
+        "status": [
+          403
+        ]
+      }
+    },
+    {
+      "name": "Metrics not exposed by gateway",
+      "category": "misconfiguration",
+      "owasp": "API8:2023",
+      "method": "GET",
+      "path": "/metrics",
+      "auth": "none",
+      "expect": {
+        "status": [
+          200,
+          404
+        ],
+        "bodyNotContains": [
+          "process_cpu_seconds_total"
+        ]
+      }
+    },
+    {
+      "name": "Security headers on SPA",
+      "category": "misconfiguration",
+      "owasp": "API8:2023",
+      "method": "GET",
+      "path": "/",
+      "auth": "none",
+      "expect": {
+        "status": [
+          200
+        ],
+        "headers": {
+          "content-security-policy": "script-src 'self'",
+          "x-frame-options": "DENY"
+        }
+      }
+    },
+    {
+      "name": "Malformed JSON never 500",
+      "category": "validation",
+      "owasp": "API8:2023",
+      "method": "POST",
+      "path": "/api/v1/messages",
+      "auth": "user",
+      "headers": {
+        "content-type": "application/json"
+      },
+      "json": "{not json",
+      "expect": {
+        "status": [
+          400
+        ]
+      }
+    }
+  ]
+}

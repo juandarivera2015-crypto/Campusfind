@@ -1,0 +1,3 @@
+# Docker / local MySQL stack: common deps + MySQL client (needs libmysqlclient to build)
+-r requirements.txt
+mysqlclient>=2.2,<3

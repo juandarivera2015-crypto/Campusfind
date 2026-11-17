@@ -1,0 +1,46 @@
+# AWS EKS overlay. Values in CAPS are filled by the CD workflow from `terraform output`.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: campusfind
+resources:
+  - ../../base
+  - external-secrets.yaml
+  - storageclass.yaml
+patches:
+  - path: config-patch.yaml
+  - target: { kind: PersistentVolumeClaim, name: api-uploads }
+    patch: |-
+      - op: add
+        path: /spec/storageClassName
+        value: efs-sc
+  - target: { kind: Ingress, name: campusfind }
+    patch: |-
+      - op: replace
+        path: /spec/ingressClassName
+        value: alb
+      - op: replace
+        path: /metadata/annotations
+        value:
+          alb.ingress.kubernetes.io/scheme: internet-facing
+          alb.ingress.kubernetes.io/target-type: ip
+          alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+          alb.ingress.kubernetes.io/ssl-redirect: "443"
+          alb.ingress.kubernetes.io/certificate-arn: ACM_CERTIFICATE_ARN
+          alb.ingress.kubernetes.io/healthcheck-path: /nginx-health
+      - op: remove
+        path: /spec/tls
+      - op: replace
+        path: /spec/rules/0/host
+        value: APP_DOMAIN
+  # The in-cluster MySQL NetworkPolicy is irrelevant with RDS (security groups protect it)
+  - target: { kind: NetworkPolicy, name: mysql-from-backends }
+    patch: |-
+      $patch: delete
+      apiVersion: networking.k8s.io/v1
+      kind: NetworkPolicy
+      metadata:
+        name: mysql-from-backends
+images:
+  - { name: campusfind/api,   newName: ECR_REGISTRY/campusfind-api,   newTag: IMAGE_TAG }
+  - { name: campusfind/stats, newName: ECR_REGISTRY/campusfind-stats, newTag: IMAGE_TAG }
+  - { name: campusfind/web,   newName: ECR_REGISTRY/campusfind-web,   newTag: IMAGE_TAG }

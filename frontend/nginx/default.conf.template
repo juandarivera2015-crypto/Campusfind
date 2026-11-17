@@ -1,0 +1,52 @@
+# CampusFind gateway: serves the React build and reverse-proxies the APIs,
+# so the browser talks to ONE origin (cookies stay SameSite=Strict, no CORS needed).
+#
+# This is an nginx *template*: at start-up the official entrypoint fills ${NGINX_LOCAL_RESOLVERS}
+# with the container's DNS server (Docker 127.0.0.11 or kube-dns). Upstreams are stored in
+# variables so their names are resolved per request: nginx starts even if api/stats are not up yet
+# and follows them when their IPs change (restarts, new pods).
+
+server {
+  listen 8080;
+  server_name _;
+  server_tokens off;
+  resolver ${NGINX_LOCAL_RESOLVERS} valid=10s ipv6=off;
+  set $api_upstream   http://api:3000;
+  set $stats_upstream http://stats:8000;
+  root /usr/share/nginx/html;
+  client_max_body_size 6m;
+
+  # Gzip
+  gzip on;
+  gzip_types text/css application/javascript application/json image/svg+xml;
+
+  proxy_set_header Host              $host;
+  proxy_set_header X-Real-IP         $remote_addr;
+  proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+
+  location /api/stats/   { proxy_pass $stats_upstream; }          # Django microservice
+  location /api/         { proxy_pass $api_upstream; }            # Express REST API + Swagger UI
+  location /oauth/       { proxy_pass $api_upstream; }            # OAuth 2.1 server
+  location /.well-known/ { proxy_pass $api_upstream; }
+  location /uploads/     { proxy_pass $api_upstream; }
+  # /metrics and /health are intentionally NOT exposed publicly
+
+  location /assets/ {
+    add_header Cache-Control "public, max-age=31536000, immutable";
+    try_files $uri =404;
+  }
+
+  location / {
+    # Security headers for the SPA (XSS / clickjacking mitigations)
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+    add_header Cache-Control "no-cache" always;
+    try_files $uri /index.html;
+  }
+
+  location = /nginx-health { access_log off; return 200 "ok\n"; }
+}

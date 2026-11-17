@@ -1,0 +1,22 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: campusfind-api
+  labels: { release: kube-prometheus-stack }
+spec:
+  namespaceSelector: { matchNames: [campusfind] }
+  selector: { matchLabels: { app.kubernetes.io/name: api } }
+  endpoints:
+    - { port: http, path: /metrics, interval: 15s }
+  jobLabel: app.kubernetes.io/name
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: campusfind-stats
+  labels: { release: kube-prometheus-stack }
+spec:
+  namespaceSelector: { matchNames: [campusfind] }
+  selector: { matchLabels: { app.kubernetes.io/name: stats } }
+  endpoints:
+    - { port: http, path: /metrics, interval: 15s }

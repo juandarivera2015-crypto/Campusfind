@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: campusfind
+labels:
+  - pairs: { app.kubernetes.io/part-of: campusfind }
+    includeSelectors: false
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - uploads-pvc.yaml
+  - migrate-job.yaml
+  - api.yaml
+  - stats.yaml
+  - web.yaml
+  - networkpolicy.yaml
+  - ingress.yaml
+images:
+  - { name: campusfind/api,   newName: ghcr.io/juandarivera2015-crypto/campusfind/api,   newTag: latest }
+  - { name: campusfind/stats, newName: ghcr.io/juandarivera2015-crypto/campusfind/stats, newTag: latest }
+  - { name: campusfind/web,   newName: ghcr.io/juandarivera2015-crypto/campusfind/web,   newTag: latest }

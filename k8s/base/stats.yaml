@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stats
+  labels: { app.kubernetes.io/name: stats }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app.kubernetes.io/name: stats }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: stats }
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: /metrics
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: stats
+          image: campusfind/stats
+          ports: [{ name: http, containerPort: 8000 }]
+          envFrom: [{ configMapRef: { name: campusfind-config } }]
+          resources:
+            requests: { cpu: 100m, memory: 160Mi }
+            limits:   { cpu: 500m, memory: 384Mi }
+          readinessProbe:
+            httpGet: { path: /health/ready, port: http }
+          livenessProbe:
+            httpGet: { path: /health/live, port: http }
+            initialDelaySeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: secrets, mountPath: /run/secrets/campusfind, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: secrets
+          secret: { secretName: campusfind-secrets, defaultMode: 0400 }
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stats
+  labels: { app.kubernetes.io/name: stats }
+spec:
+  selector: { app.kubernetes.io/name: stats }
+  ports: [{ name: http, port: 8000, targetPort: http }]
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: stats
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: stats }
+  minReplicas: 1
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource: { name: cpu, target: { type: Utilization, averageUtilization: 75 } }

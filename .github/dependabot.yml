@@ -1,0 +1,8 @@
+version: 2
+updates:
+  - { package-ecosystem: npm, directory: /backend, schedule: { interval: weekly }, target-branch: develop }
+  - { package-ecosystem: npm, directory: /frontend, schedule: { interval: weekly }, target-branch: develop }
+  - { package-ecosystem: pip, directory: /stats-service, schedule: { interval: weekly }, target-branch: develop }
+  - { package-ecosystem: docker, directory: /backend, schedule: { interval: monthly }, target-branch: develop }
+  - { package-ecosystem: github-actions, directory: /, schedule: { interval: monthly }, target-branch: develop }
+  - { package-ecosystem: terraform, directory: /terraform/aws, schedule: { interval: monthly }, target-branch: develop }

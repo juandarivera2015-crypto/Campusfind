@@ -15,7 +15,10 @@ const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 function createApp() {
   const app = express();
   app.disable('x-powered-by');
-  app.set('trust proxy', 1); // behind nginx / ingress: use X-Forwarded-For for rate limiting
+  // Number of reverse proxies in front of the API (nginx = 1; Caddy + nginx on EC2 = 2).
+  // Needed so rate limiting sees the real client IP from X-Forwarded-For.
+  const trust = process.env.TRUST_PROXY || '1';
+  app.set('trust proxy', trust === 'true' ? true : parseInt(trust, 10));
 
   // ── Security headers (OWASP API8:2023 Security Misconfiguration) ──
   app.use(helmet({

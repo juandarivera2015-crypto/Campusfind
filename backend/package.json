@@ -4,7 +4,9 @@
   "description": "CampusFind REST API (Express + Sequelize) with OAuth 2.1 + JWT",
   "main": "src/server.js",
   "private": true,
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
@@ -14,9 +16,11 @@
     "test": "jest --runInBand",
     "test:coverage": "jest --runInBand --coverage",
     "lint": "eslint src tests",
-    "openapi:lint": "node -e \"require('./src/docs/openapi').loadSpec()\""
+    "openapi:lint": "node -e \"require('./src/docs/openapi').loadSpec()\"",
+    "migrate:prod": "NODE_ENV=production sequelize-cli db:migrate"
   },
   "dependencies": {
+    "@vercel/blob": "^1.0.0 || ^2.0.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -29,6 +33,8 @@
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "mysql2": "^3.11.4",
+    "pg": "^8.13.1",
+    "pg-hstore": "^2.3.4",
     "prom-client": "^15.1.3",
     "sequelize": "^6.37.5",
     "swagger-ui-express": "^5.0.1",
@@ -46,7 +52,12 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "setupFiles": ["<rootDir>/tests/env.js"],
-    "coveragePathIgnorePatterns": ["/node_modules/", "/src/db/"]
+    "setupFiles": [
+      "<rootDir>/tests/env.js"
+    ],
+    "coveragePathIgnorePatterns": [
+      "/node_modules/",
+      "/src/db/"
+    ]
   }
 }

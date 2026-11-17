@@ -32,6 +32,10 @@ function errorHandler(err, req, res, _next) {
   } else if (err.type === 'entity.parse.failed') {
     status = 400;
     body = { type: 'about:blank', title: 'Bad Request', status, detail: 'Malformed JSON body' };
+  } else if (Number.isInteger(err.status) && err.status >= 400 && err.status < 500) {
+    // e.g. express.static 404 / 403 (path traversal), body-parser errors
+    status = err.status;
+    body = { type: 'about:blank', title: status === 404 ? 'Not Found' : 'Bad Request', status, detail: status === 404 ? 'Not found' : 'Request rejected' };
   }
 
   if (status >= 500) {

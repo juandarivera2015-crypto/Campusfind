@@ -1,0 +1,36 @@
+# Local cluster (minikube / kind / Docker Desktop):
+#   cp secrets.env.example secrets.env   # and fill it in
+#   kubectl apply -k k8s/overlays/local
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: campusfind
+resources:
+  - ../../base
+  - mysql.yaml
+secretGenerator:
+  - name: campusfind-secrets
+    envs: [secrets.env]          # git-ignored
+    options: { disableNameSuffixHash: true }
+patches:
+  - target: { kind: PersistentVolumeClaim, name: api-uploads }
+    patch: |-
+      - op: replace
+        path: /spec/accessModes
+        value: [ReadWriteOnce]
+  - target: { kind: Deployment, name: api }
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  - target: { kind: HorizontalPodAutoscaler, name: api }
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 1
+images:
+  - { name: campusfind/api,   newName: campusfind/api,   newTag: local }
+  - { name: campusfind/stats, newName: campusfind/stats, newTag: local }
+  - { name: campusfind/web,   newName: campusfind/web,   newTag: local }
