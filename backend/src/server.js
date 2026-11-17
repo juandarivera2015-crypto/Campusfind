@@ -1,12 +1,11 @@
 'use strict';
 const config = require('./config');
 const { sequelize } = require('./models');
-const { createApp } = require('./app');
+const app = require('./app');
 
 async function main() {
   await sequelize.authenticate();
   console.log(`[db] connected (${sequelize.getDialect()})`);
-  const app = createApp();
   const server = app.listen(config.port, () => {
     console.log(`[api] CampusFind API listening on :${config.port} (${config.env})`);
     console.log(`[api] Swagger UI: ${config.publicUrl}/api/docs`);

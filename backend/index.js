@@ -1,8 +1,6 @@
 'use strict';
 /**
- * Entry point for Vercel (zero-configuration Express): exports the app instead of calling listen().
- * Local/Docker still start with `node src/server.js`.
+ * Alternative entry point (exports the Express app without calling listen()).
+ * Vercel uses src/app.js; local/Docker start with `node src/server.js`.
  */
-const { createApp } = require('./src/app');
-
-module.exports = createApp();
+module.exports = require('./src/app');
