@@ -88,4 +88,11 @@ function createApp() {
   return app;
 }
 
-module.exports = { createApp };
+/**
+ * Default export = a ready-to-use Express app. Vercel's zero-config Express runtime picks this
+ * file as the entry point and requires the default export to be the app itself.
+ * `createApp` stays available (as a property) for the tests, which build fresh instances.
+ */
+const app = createApp();
+app.createApp = createApp;
+module.exports = app;

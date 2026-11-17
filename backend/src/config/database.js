@@ -39,6 +39,9 @@ function fromUrl() {
   return {
     use_env_variable: 'DATABASE_URL', // read by sequelize-cli
     dialect,
+    // Explicit driver: Sequelize loads it with a dynamic require that serverless bundlers
+    // (Vercel) cannot trace, which fails with "Please install pg package manually".
+    dialectModule: dialect === 'postgres' ? require('pg') : require('mysql2'),
     logging: false,
     // Serverless functions: keep very few connections per instance (use Neon's *-pooler* host)
     pool: { max: parseInt(process.env.DB_POOL_MAX || '3', 10), min: 0, acquire: 30000, idle: 5000, evict: 5000 },
