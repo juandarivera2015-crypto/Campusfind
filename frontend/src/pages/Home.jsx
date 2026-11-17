@@ -81,9 +81,9 @@ export default function Home() {
                 <Link to="/report?status=found" className="btn-hero-outline">Report Found</Link>
               </div>
               <div className="hero-stats">
-                <div className="hero-stat"><div className="stat-num">{stats?.total ?? '—'}</div><div className="stat-label">Total Reports</div></div>
-                <div className="hero-stat"><div className="stat-num">{stats?.lost ?? '—'}</div><div className="stat-label">Lost Items</div></div>
-                <div className="hero-stat"><div className="stat-num">{stats?.found ?? '—'}</div><div className="stat-label">Found Items</div></div>
+                <div className="hero-stat"><div className="stat-num" translate="no">{stats?.total ?? '—'}</div><div className="stat-label">Total Reports</div></div>
+                <div className="hero-stat"><div className="stat-num" translate="no">{stats?.lost ?? '—'}</div><div className="stat-label">Lost Items</div></div>
+                <div className="hero-stat"><div className="stat-num" translate="no">{stats?.found ?? '—'}</div><div className="stat-label">Found Items</div></div>
               </div>
             </div>
             <div className="col-lg-5 text-center d-none d-lg-block">
@@ -129,7 +129,8 @@ export default function Home() {
             <button type="button" className={tabClass('lost')} onClick={() => setStatus('lost')}>Lost</button>
             <button type="button" className={tabClass('found')} onClick={() => setStatus('found')}>Found</button>
           </div>
-          <span style={{ fontSize: '0.85rem', color: '#888', fontWeight: 600 }}>
+          {/* translate="no": browser translators replace text nodes and React could no longer update them */}
+          <span translate="no" style={{ fontSize: '0.85rem', color: '#888', fontWeight: 600 }}>
             {!loading && `${total} result${total !== 1 ? 's' : ''}`}
           </span>
         </div>
