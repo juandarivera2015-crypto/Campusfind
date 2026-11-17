@@ -11,14 +11,14 @@ const skip = () => config.isTest;
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000, limit: parseInt(process.env.API_RATE_LIMIT || '300', 10), standardHeaders: 'draft-7', legacyHeaders: false, skip,
   validate: { trustProxy: false }, // TRUST_PROXY=true is intended on Vercel (it overwrites X-Forwarded-For)
-  handler: problem('Too many requests, slow down.'),
+  handler: problem('Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.'),
 });
 
 /** Strict limit for credential endpoints — mitigates brute force / credential stuffing (API2:2023). */
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, limit: parseInt(process.env.AUTH_RATE_LIMIT || '20', 10), standardHeaders: 'draft-7', legacyHeaders: false, skip,
   validate: { trustProxy: false }, // TRUST_PROXY=true is intended on Vercel (it overwrites X-Forwarded-For)
-  handler: problem('Too many authentication attempts. Try again in 15 minutes.'),
+  handler: problem('Demasiados intentos de inicio de sesión. Inténtalo de nuevo en 15 minutos.'),
 });
 
 module.exports = { apiLimiter, authLimiter };

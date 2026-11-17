@@ -29,7 +29,7 @@ async function parse(res) {
   const body = type.includes('json') ? await res.json() : await res.text();
   if (!res.ok) {
     const msg = body?.errors?.map((e) => e.message).join(' ')
-      || body?.detail || body?.error_description || body?.title || `Request failed (${res.status})`;
+      || body?.detail || body?.error_description || body?.title || `La solicitud falló (${res.status})`;
     throw new ApiError(msg, res.status, body);
   }
   return body;

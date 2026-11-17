@@ -11,7 +11,7 @@ const router = express.Router();
 
 const sendSchema = z.object({
   object_id: z.coerce.number().int().positive(),
-  message: z.string().trim().min(1, 'Message is required').max(2000),
+  message: z.string().trim().min(1, 'El mensaje es obligatorio').max(2000),
 }).strict();
 
 const toDTO = (m) => ({
@@ -48,11 +48,11 @@ router.post('/', requireAuth('messages:write'), validate(sendSchema), async (req
   try {
     const { object_id: objectId, message } = req.valid.body;
     const obj = await LostObject.findByPk(objectId);
-    if (!obj) throw notFound('Object not found.');
-    if (obj.user_id === req.user.id) throw badRequest('You cannot message yourself.');
+    if (!obj) throw notFound('Objeto no encontrado.');
+    if (obj.user_id === req.user.id) throw badRequest('No puedes enviarte mensajes a ti mismo.');
     const msg = await Message.create({ object_id: objectId, sender_id: req.user.id, receiver_id: obj.user_id, message });
     business.messagesSent.inc();
-    res.status(201).location(`/api/v1/messages/${msg.id}`).json({ message: 'Message sent successfully!', data: { id: msg.id } });
+    res.status(201).location(`/api/v1/messages/${msg.id}`).json({ message: '¡Mensaje enviado con éxito!', data: { id: msg.id } });
   } catch (err) { next(err); }
 });
 
@@ -69,7 +69,7 @@ router.patch('/:id(\\d+)', requireAuth('messages:write'),
   validate(z.object({ is_read: z.boolean() }).strict()), async (req, res, next) => {
     try {
       const msg = await Message.findByPk(req.params.id);
-      if (!msg) throw notFound('Message not found');
+      if (!msg) throw notFound('Mensaje no encontrado');
       if (msg.receiver_id !== req.user.id) throw forbidden();
       await msg.update({ is_read: req.valid.body.is_read });
       res.json({ data: { id: msg.id, is_read: msg.is_read } });

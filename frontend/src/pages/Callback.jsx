@@ -22,7 +22,7 @@ export default function Callback() {
     sessionStorage.removeItem('cf_oauth_state');
     sessionStorage.removeItem('cf_oauth_verifier');
     if (params.get('error')) { setError(params.get('error_description') || params.get('error')); return; }
-    if (!verifier || params.get('state') !== expectedState) { setError('Invalid OAuth state.'); return; }
+    if (!verifier || params.get('state') !== expectedState) { setError('Estado de OAuth no válido. Intenta iniciar sesión de nuevo.'); return; }
     exchangeCode(params.get('code'), verifier).then(loadMe).then(() => navigate('/', { replace: true }))
       .catch((err) => setError(err.message));
   }, [params, navigate, loadMe]);

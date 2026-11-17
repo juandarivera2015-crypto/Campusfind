@@ -26,13 +26,13 @@ function requireAuth(...requiredScopes) {
       const missing = requiredScopes.filter((s) => !granted.includes(s));
       if (missing.length) {
         res.set('WWW-Authenticate', `Bearer error="insufficient_scope", scope="${requiredScopes.join(' ')}"`);
-        return next(forbidden(`Missing scope(s): ${missing.join(', ')}`));
+        return next(forbidden(`Permisos insuficientes: ${missing.join(', ')}`));
       }
       req.user = { id: parseInt(claims.sub, 10), name: claims.name, email: claims.email, scope: granted };
       return next();
     } catch (_err) {
       res.set('WWW-Authenticate', 'Bearer error="invalid_token"');
-      return next(unauthorized('Invalid or expired access token'));
+      return next(unauthorized('Tu sesión expiró o no es válida. Inicia sesión de nuevo.'));
     }
   };
 }

@@ -4,38 +4,39 @@ const config = require('../config');
 
 function notFoundHandler(req, res) {
   res.status(404).type('application/problem+json').json({
-    type: 'about:blank', title: 'Not Found', status: 404, detail: `No route for ${req.method} ${req.path}`,
+    type: 'about:blank', title: 'Not Found', status: 404, detail: `No existe la ruta ${req.method} ${req.path}`,
   });
 }
 
 // eslint-disable-next-line no-unused-vars
 function errorHandler(err, req, res, _next) {
   let status = 500;
-  let body = { type: 'about:blank', title: 'Internal Server Error', status, detail: 'An unexpected error occurred' };
+  let body = { type: 'about:blank', title: 'Internal Server Error', status, detail: 'Ocurrió un error inesperado. Inténtalo de nuevo.' };
 
   if (err instanceof HttpError) {
     status = err.status;
     body = { type: 'about:blank', title: err.title, status, detail: err.detail, ...err.extra };
   } else if (err.name === 'MulterError') {
     status = err.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
-    body = { type: 'about:blank', title: status === 413 ? 'Payload Too Large' : 'Bad Request', status, detail: err.message };
+    body = { type: 'about:blank', title: status === 413 ? 'Payload Too Large' : 'Bad Request', status,
+      detail: status === 413 ? 'El archivo supera el tamaño máximo permitido.' : 'El archivo enviado no es válido.' };
   } else if (err.name === 'SequelizeValidationError') {
     status = 400;
-    body = { type: 'about:blank', title: 'Bad Request', status, detail: 'Validation failed',
+    body = { type: 'about:blank', title: 'Bad Request', status, detail: 'Revisa los datos enviados',
       errors: err.errors.map((e) => ({ field: e.path, message: e.message })) };
   } else if (err.name === 'SequelizeUniqueConstraintError') {
     status = 409;
-    body = { type: 'about:blank', title: 'Conflict', status, detail: 'Resource already exists' };
+    body = { type: 'about:blank', title: 'Conflict', status, detail: 'El recurso ya existe' };
   } else if (err.type === 'entity.too.large') {
     status = 413;
-    body = { type: 'about:blank', title: 'Payload Too Large', status, detail: 'Request body too large' };
+    body = { type: 'about:blank', title: 'Payload Too Large', status, detail: 'La solicitud es demasiado grande' };
   } else if (err.type === 'entity.parse.failed') {
     status = 400;
-    body = { type: 'about:blank', title: 'Bad Request', status, detail: 'Malformed JSON body' };
+    body = { type: 'about:blank', title: 'Bad Request', status, detail: 'El cuerpo JSON no es válido' };
   } else if (Number.isInteger(err.status) && err.status >= 400 && err.status < 500) {
     // e.g. express.static 404 / 403 (path traversal), body-parser errors
     status = err.status;
-    body = { type: 'about:blank', title: status === 404 ? 'Not Found' : 'Bad Request', status, detail: status === 404 ? 'Not found' : 'Request rejected' };
+    body = { type: 'about:blank', title: status === 404 ? 'Not Found' : 'Bad Request', status, detail: status === 404 ? 'No encontrado' : 'Solicitud rechazada' };
   }
 
   if (status >= 500) {
