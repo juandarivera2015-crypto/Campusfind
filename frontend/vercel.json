@@ -5,20 +5,20 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/api/stats/:path*",
-      "destination": "https://campusfind-stats-umb.vercel.app/api/stats/:path*"
+      "source": "/api/stats/(.*)",
+      "destination": "https://campusfind-stats-umb.vercel.app/api/stats/$1"
     },
     {
-      "source": "/api/:path*",
-      "destination": "https://campusfind-api-umb.vercel.app/api/:path*"
+      "source": "/api/(.*)",
+      "destination": "https://campusfind-api-umb.vercel.app/api/$1"
     },
     {
-      "source": "/oauth/:path*",
-      "destination": "https://campusfind-api-umb.vercel.app/oauth/:path*"
+      "source": "/oauth/(.*)",
+      "destination": "https://campusfind-api-umb.vercel.app/oauth/$1"
     },
     {
-      "source": "/.well-known/:path*",
-      "destination": "https://campusfind-api-umb.vercel.app/.well-known/:path*"
+      "source": "/.well-known/(.*)",
+      "destination": "https://campusfind-api-umb.vercel.app/.well-known/$1"
     },
     {
       "source": "/(.*)",
