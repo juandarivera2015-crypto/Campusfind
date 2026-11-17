@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 # ---------- deps stage: production dependencies only ----------
-FROM node:22-alpine AS deps
+FROM node:26-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi \
@@ -8,7 +8,7 @@ RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit
  && npm cache clean --force
 
 # ---------- runtime stage ----------
-FROM node:22-alpine AS runtime
+FROM node:26-alpine AS runtime
 ENV NODE_ENV=production PORT=3000 UPLOAD_DIR=/app/uploads
 WORKDIR /app
 RUN apk add --no-cache tini wget
