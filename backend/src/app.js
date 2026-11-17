@@ -17,7 +17,8 @@ function createApp() {
   app.disable('x-powered-by');
   // Number of reverse proxies in front of the API (nginx = 1; Caddy + nginx on EC2 = 2).
   // Needed so rate limiting sees the real client IP from X-Forwarded-For.
-  app.set('trust proxy', parseInt(process.env.TRUST_PROXY || '1', 10));
+  const trust = process.env.TRUST_PROXY || '1';
+  app.set('trust proxy', trust === 'true' ? true : parseInt(trust, 10));
 
   // ── Security headers (OWASP API8:2023 Security Misconfiguration) ──
   app.use(helmet({

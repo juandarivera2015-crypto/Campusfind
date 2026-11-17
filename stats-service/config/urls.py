@@ -1,6 +1,6 @@
 from django.db import connection
 from django.http import JsonResponse
-from django.urls import include, path
+from django.urls import include, path, re_path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 
@@ -18,9 +18,9 @@ def ready(_request):
 
 
 urlpatterns = [
+    re_path(r"^api/stats/schema/?$", SpectacularAPIView.as_view(), name="schema"),
+    re_path(r"^api/stats/docs/?$", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("api/stats/", include("stats.urls")),
-    path("api/stats/schema/", SpectacularAPIView.as_view(), name="schema"),
-    path("api/stats/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("health/live", live),
     path("health/ready", ready),
     path("", include("django_prometheus.urls")),  # exposes /metrics

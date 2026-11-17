@@ -12,6 +12,8 @@ const { business } = require('../middleware/metrics');
 
 const router = express.Router();
 const { CATEGORIES, STATUSES } = LostObject;
+// Postgres LIKE is case-sensitive; MySQL (utf8mb4_unicode_ci) and SQLite are not.
+const LIKE = LostObject.sequelize.getDialect() === 'postgres' ? Op.iLike : Op.like;
 const emptyToUndef = (v) => (v === '' || v === null ? undefined : v);
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD')
   .refine((d) => !Number.isNaN(Date.parse(d)), 'Invalid date');
@@ -72,11 +74,11 @@ router.get('/', validate(listSchema, 'query'), async (req, res, next) => {
     const where = {};
     if (q.keyword) {
       const kw = `%${escapeLike(q.keyword)}%`;
-      where[Op.or] = [{ name: { [Op.like]: kw } }, { description: { [Op.like]: kw } }, { location: { [Op.like]: kw } }];
+      where[Op.or] = [{ name: { [LIKE]: kw } }, { description: { [LIKE]: kw } }, { location: { [LIKE]: kw } }];
     }
     if (q.category) where.category = q.category;
     if (q.status) where.status = q.status;
-    if (q.location) where.location = { [Op.like]: `%${escapeLike(q.location)}%` };
+    if (q.location) where.location = { [LIKE]: `%${escapeLike(q.location)}%` };
     if (q.date) where.date = q.date;
 
     const { rows, count } = await LostObject.findAndCountAll({

@@ -44,10 +44,10 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: '3.12', cache: pip, cache-dependency-path: stats-service/requirements.txt }
       - run: sudo apt-get update && sudo apt-get install -y default-libmysqlclient-dev pkg-config
-      - run: pip install -r requirements.txt pip-audit
+      - run: pip install -r requirements-mysql.txt pip-audit
       - run: python manage.py check --deploy --fail-level ERROR
       - run: python manage.py test -v 2
-      - run: pip-audit -r requirements.txt
+      - run: pip-audit -r requirements-mysql.txt
 
   web:
     name: Web (React)
@@ -61,6 +61,48 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+
+  postgres:
+    name: Postgres compatibility (Neon target)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: campusfind, POSTGRES_PASSWORD: campusfind, POSTGRES_DB: campusfind }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U campusfind" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://campusfind:campusfind@localhost:5432/campusfind
+      JWT_SECRET: ci-only-jwt-secret-that-is-long-enough-123456
+      DJANGO_SECRET_KEY: ci-only-secret
+      NODE_ENV: production
+      COOKIE_SECURE: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Migrations + seed on Postgres
+        working-directory: backend
+        run: |
+          npm install
+          npx sequelize-cli db:migrate
+          npx sequelize-cli db:seed:all
+      - name: Smoke test API on Postgres (case-insensitive search)
+        working-directory: backend
+        run: |
+          node src/server.js & sleep 5
+          curl -fsS localhost:3000/health/ready
+          test "$(curl -fsS 'localhost:3000/api/v1/objects?keyword=BACKPACK' | python3 -c 'import sys,json;print(json.load(sys.stdin)["total"])')" -ge 1
+      - name: Smoke test Django on Postgres
+        working-directory: stats-service
+        run: |
+          pip install -r requirements.txt
+          python manage.py check
+          DJANGO_ALLOWED_HOSTS=localhost python manage.py runserver 8000 & sleep 5
+          curl -fsS localhost:8000/api/stats/summary | tee /dev/stderr | python3 -c 'import sys,json;assert json.load(sys.stdin)["total"]>=2'
 
   iac:
     name: IaC lint (Terraform, Kubernetes, Compose)

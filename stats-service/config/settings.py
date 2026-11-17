@@ -6,6 +6,7 @@ unmanaged models (the schema is owned by the Sequelize migrations).
 """
 import os
 from pathlib import Path
+from urllib.parse import parse_qs, unquote, urlparse
 
 from .secrets import read_secret
 
@@ -16,10 +17,13 @@ if not SECRET_KEY:
     raise RuntimeError("DJANGO_SECRET_KEY (or DJANGO_SECRET_KEY_FILE) must be set")
 
 ALLOWED_HOSTS = [h.strip() for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,stats").split(",") if h.strip()]
+if os.environ.get("VERCEL"):
+    ALLOWED_HOSTS.append(".vercel.app")  # *.vercel.app deployment URLs
 
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.auth",
+    "django.contrib.staticfiles",
     "rest_framework",
     "drf_spectacular",
     "django_prometheus",
@@ -45,7 +49,33 @@ TEMPLATES = [{
 }]
 
 # ── Database (Django ORM) ──
-if os.environ.get("DB_ENGINE", "mysql") == "sqlite":
+def _database_from_url(url: str) -> dict:
+    """Parses DATABASE_URL (Neon Postgres on Vercel, or mysql://) into Django settings."""
+    u = urlparse(url)
+    query = {k: v[0] for k, v in parse_qs(u.query).items()}
+    is_pg = u.scheme.startswith("postg")
+    db = {
+        "ENGINE": "django_prometheus.db.backends.postgresql" if is_pg else "django_prometheus.db.backends.mysql",
+        "NAME": u.path.lstrip("/"),
+        "USER": unquote(u.username or ""),
+        "PASSWORD": unquote(u.password or ""),
+        "HOST": u.hostname or "",
+        "PORT": str(u.port or (5432 if is_pg else 3306)),
+        # Serverless (Vercel): don't keep connections between invocations
+        "CONN_MAX_AGE": 0 if os.environ.get("VERCEL") else 60,
+        "OPTIONS": {},
+    }
+    if is_pg:
+        # Neon's pooled endpoint (PgBouncer, transaction mode) does not support server-side cursors
+        db["DISABLE_SERVER_SIDE_CURSORS"] = True
+        if query.get("sslmode"):
+            db["OPTIONS"]["sslmode"] = query["sslmode"]
+    return db
+
+
+if os.environ.get("DATABASE_URL"):
+    DATABASES = {"default": _database_from_url(os.environ["DATABASE_URL"])}
+elif os.environ.get("DB_ENGINE", "mysql") == "sqlite":
     DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "test.sqlite3"}}
 else:
     DATABASES = {
@@ -68,6 +98,8 @@ USE_TZ = False
 TIME_ZONE = "UTC"
 LANGUAGE_CODE = "en-us"
 STATIC_URL = "static/"
+APPEND_SLASH = False  # see stats/urls.py
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # ── JWT issued by the Express OAuth 2.1 server ──
 JWT = {

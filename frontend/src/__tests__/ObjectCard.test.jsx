@@ -20,6 +20,12 @@ describe('ObjectCard (XSS regression)', () => {
     expect(container.querySelector('img')).toBeNull();
   });
 
+  it('accepts images from the Vercel Blob store', () => {
+    const url = 'https://abc123.public.blob.vercel-storage.com/objects/obj_1.png';
+    const { container } = render(<ObjectCard obj={{ ...base, image: url }} onContact={() => {}} />);
+    expect(container.querySelector('img').getAttribute('src')).toBe(url);
+  });
+
   it('shows Delete for the owner and Contact for others', () => {
     render(<ObjectCard obj={base} isOwner onDelete={() => {}} />);
     expect(screen.getByText('Delete')).toBeInTheDocument();

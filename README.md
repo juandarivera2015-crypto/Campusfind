@@ -32,6 +32,7 @@ reimplementa como una arquitectura **cliente-servidor** moderna, segura, observa
 | **IA aplicada al testing** | [`ai-testing/`](ai-testing/) — Claude genera casos desde el contrato OpenAPI |
 | **Docker / Compose** | `Dockerfile` en cada servicio + [`docker-compose.yml`](docker-compose.yml) (imágenes, volúmenes, redes, secretos) |
 | **Kubernetes** | [`k8s/`](k8s/) — Deployments, Services, HPA, PDB, NetworkPolicy, Ingress (kustomize) |
+| **Despliegue gratuito (Vercel + Neon)** | [`docs/DESPLIEGUE-VERCEL.md`](docs/DESPLIEGUE-VERCEL.md) — producción automática desde `main` |
 | **Despliegue en AWS (EC2, económico)** | [`docs/DESPLIEGUE-EC2.md`](docs/DESPLIEGUE-EC2.md) — auto-deploy desde `main` con GitHub Actions |
 | **Terraform (IaC) + AWS** | [`terraform/aws/`](terraform/aws/) — VPC, EKS, RDS, EFS, ECR, Secrets Manager, IAM OIDC |
 | **IaaS / PaaS / SaaS, AWS·GCP·Azure** | [`docs/DESPLIEGUE.md`](docs/DESPLIEGUE.md#modelos-de-servicio-cloud) |

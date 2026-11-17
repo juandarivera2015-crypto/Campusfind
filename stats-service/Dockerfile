@@ -3,8 +3,8 @@ FROM python:3.12-slim AS builder
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential default-libmysqlclient-dev pkg-config \
  && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-COPY requirements.txt .
-RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
+COPY requirements.txt requirements-mysql.txt ./
+RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements-mysql.txt
 
 FROM python:3.12-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 DJANGO_DEBUG=false

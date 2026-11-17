@@ -1,0 +1,46 @@
+# Applies Sequelize migrations to the production database (Neon Postgres).
+# Vercel deploys the code from `main` on its own; this keeps the schema in sync.
+# Requires the repository secret NEON_DATABASE_URL (Neon "direct" connection string, not -pooler).
+name: Migrate Neon database
+
+on:
+  push:
+    branches: [main]
+    paths: ['backend/src/db/**', 'backend/src/models/**']
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: Also insert the demo user and sample objects
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-migrate
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    environment: production
+    defaults: { run: { working-directory: backend } }
+    env:
+      DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+      NODE_ENV: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Check configuration
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::warning::NEON_DATABASE_URL secret is not set — nothing to migrate"; exit 0
+          fi
+      - run: npm install
+        if: env.DATABASE_URL != ''
+      - run: npx sequelize-cli db:migrate
+        if: env.DATABASE_URL != ''
+      - run: npx sequelize-cli db:seed:all
+        if: env.DATABASE_URL != '' && inputs.seed

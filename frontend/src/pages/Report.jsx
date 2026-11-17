@@ -5,7 +5,7 @@ import { CATEGORIES } from '../constants';
 import Alert from '../components/Alert';
 import LoadingOverlay from '../components/Loading';
 
-const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_BYTES = 4 * 1024 * 1024; // Vercel Functions accept request bodies up to 4.5 MB
 const today = () => new Date().toISOString().slice(0, 10);
 
 export default function Report() {
@@ -25,7 +25,7 @@ export default function Report() {
   const pick = (f) => {
     if (!f) return;
     if (!f.type.startsWith('image/')) { setAlert({ type: 'error', message: 'Please choose an image file.' }); return; }
-    if (f.size > MAX_BYTES) { setAlert({ type: 'error', message: 'Image size must be under 5MB.' }); return; }
+    if (f.size > MAX_BYTES) { setAlert({ type: 'error', message: 'Image size must be under 4MB.' }); return; }
     setFile(f);
     setPreview(URL.createObjectURL(f));
   };
@@ -125,7 +125,7 @@ export default function Report() {
                         <div className="upload-default">
                           <div className="upload-icon">📷</div>
                           <div className="upload-text">Click or drag &amp; drop an image here</div>
-                          <div className="upload-hint">JPG, PNG, GIF or WebP — max 5MB</div>
+                          <div className="upload-hint">JPG, PNG, GIF or WebP — max 4MB</div>
                         </div>
                       )}
                     </div>

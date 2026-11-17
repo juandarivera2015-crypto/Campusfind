@@ -9,5 +9,15 @@ export function formatDate(dateStr) {
 
 export const truncate = (str, n) => (str && str.length > n ? `${str.substring(0, n)}…` : str || '');
 
-/** Only allow images served by our own API (blocks javascript:/data: URLs injected via the API). */
-export const safeImageSrc = (path) => (typeof path === 'string' && /^uploads\/[\w.-]+$/.test(path) ? `/${path}` : null);
+const BLOB_URL = /^https:\/\/[a-z0-9]+\.public\.blob\.vercel-storage\.com\/objects\/[\w.-]+$/i;
+
+/**
+ * Only allow images served by our own API (local disk) or our Vercel Blob store
+ * (blocks javascript:/data:/third-party URLs injected through the API).
+ */
+export function safeImageSrc(path) {
+  if (typeof path !== 'string') return null;
+  if (/^uploads\/[\w.-]+$/.test(path)) return `/${path}`;
+  if (BLOB_URL.test(path)) return path;
+  return null;
+}
