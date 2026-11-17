@@ -35,7 +35,7 @@ jobs:
           - { name: stats, context: stats-service }
           - { name: web, context: frontend }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: meta
         run: echo "tag=${GITHUB_REF_NAME//\//-}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
       - uses: aws-actions/configure-aws-credentials@v4
@@ -62,7 +62,7 @@ jobs:
       name: production
       url: https://${{ vars.APP_DOMAIN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}

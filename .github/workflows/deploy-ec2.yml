@@ -32,7 +32,7 @@ jobs:
       name: aws-ec2
       url: https://${{ steps.domain.outputs.domain }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # deploy exactly the commit that passed CI
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
