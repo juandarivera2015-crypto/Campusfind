@@ -109,7 +109,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v4
       - run: terraform fmt -check -recursive terraform
       - run: cd terraform/aws && terraform init -backend=false && terraform validate
       - name: Render & validate Kubernetes manifests
