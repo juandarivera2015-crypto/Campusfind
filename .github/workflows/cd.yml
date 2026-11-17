@@ -1,4 +1,5 @@
-# Continuous Delivery — main = staging/production release, tags v* = versioned release.
+# Continuous Delivery to EKS (full AWS setup from terraform/aws). For the low-cost single-server
+# deployment see deploy-ec2.yml. main = production release, tags v* = versioned release.
 # Auth to AWS uses GitHub OIDC (no static keys). Required repository variables:
 #   AWS_REGION, AWS_DEPLOY_ROLE_ARN, EKS_CLUSTER, ECR_REGISTRY, RDS_ENDPOINT, EFS_FILE_SYSTEM_ID,
 #   EXTERNAL_SECRETS_ROLE_ARN, APP_DOMAIN, ACM_CERTIFICATE_ARN   (all from `terraform output`)

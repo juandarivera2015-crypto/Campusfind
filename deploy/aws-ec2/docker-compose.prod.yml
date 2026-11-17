@@ -1,0 +1,36 @@
+# Production overlay for a single AWS EC2 server.
+#   docker compose -f docker-compose.yml -f deploy/aws-ec2/docker-compose.prod.yml up -d --build
+# Adds Caddy as the public entry point (automatic HTTPS with Let's Encrypt) and keeps every
+# other port private. Requires Docker Compose >= 2.24 (for !reset / !override).
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN must be set in .env}
+    volumes:
+      - ./deploy/aws-ec2/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data          # TLS certificates (keep them: Let's Encrypt has rate limits)
+      - caddy_config:/config
+    depends_on: [web]
+    networks: [frontend]
+
+  web:
+    ports: !reset []              # only reachable through Caddy
+
+  # Monitoring UIs stay private: open them with an SSH tunnel (see docs/DESPLIEGUE-EC2.md)
+  prometheus:
+    ports: !override ["127.0.0.1:9090:9090"]
+  grafana:
+    ports: !override ["127.0.0.1:3001:3000"]
+
+  stats:
+    command: ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--access-logfile", "-"]
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -41,10 +41,13 @@ services:
     environment:
       <<: *db-env
       NODE_ENV: production
-      PUBLIC_URL: http://localhost:8080
-      CORS_ORIGINS: http://localhost:8080
-      OAUTH_REDIRECT_URIS: http://localhost:8080/callback
-      COOKIE_SECURE: "false"      # local stack is plain http; Kubernetes/AWS (HTTPS) uses true
+      # Defaults = local stack on http://localhost:8080. On a server they come from .env
+      # (deploy/aws-ec2/deploy.sh writes APP_URL=https://<domain>, COOKIE_SECURE=true, TRUST_PROXY=2).
+      PUBLIC_URL: ${APP_URL:-http://localhost:8080}
+      CORS_ORIGINS: ${APP_URL:-http://localhost:8080}
+      OAUTH_REDIRECT_URIS: ${APP_URL:-http://localhost:8080}/callback
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      TRUST_PROXY: ${TRUST_PROXY:-1}
     secrets: [db_password, jwt_secret]
     volumes:
       - uploads:/app/uploads                     # user-uploaded images
@@ -59,7 +62,7 @@ services:
     environment:
       <<: *db-env
       DJANGO_SECRET_KEY_FILE: /run/secrets/django_secret_key
-      DJANGO_ALLOWED_HOSTS: stats,localhost,127.0.0.1
+      DJANGO_ALLOWED_HOSTS: stats,localhost,127.0.0.1,${APP_DOMAIN:-localhost}
     secrets: [db_password, jwt_secret, django_secret_key]
     depends_on:
       api: { condition: service_started }        # the API runs the schema migrations

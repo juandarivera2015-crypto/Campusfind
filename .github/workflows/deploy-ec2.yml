@@ -1,0 +1,87 @@
+# Continuous Deployment to a single AWS EC2 server.
+# Runs automatically when the CI workflow succeeds on `main` (or manually from the Actions tab).
+#
+# Repository configuration (Settings -> Secrets and variables -> Actions):
+#   Secret   EC2_SSH_KEY  : full content of the .pem private key of the instance
+#   Variable EC2_HOST     : Elastic IP of the instance (e.g. 3.85.120.7)
+#   Variable EC2_USER     : optional, default "ubuntu"
+#   Variable APP_DOMAIN   : optional, default "<ip-with-dashes>.sslip.io" (free DNS name -> HTTPS)
+name: Deploy to AWS EC2
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-ec2
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: >-
+      vars.EC2_HOST != '' &&
+      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    environment:
+      name: aws-ec2
+      url: https://${{ steps.domain.outputs.domain }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # deploy exactly the commit that passed CI
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Resolve public domain
+        id: domain
+        env:
+          HOST: ${{ vars.EC2_HOST }}
+          DOMAIN: ${{ vars.APP_DOMAIN }}
+        run: |
+          if [ -z "$DOMAIN" ]; then DOMAIN="$(echo "$HOST" | tr '.' '-').sslip.io"; fi
+          echo "domain=$DOMAIN" >> "$GITHUB_OUTPUT"
+          echo "Deploying to https://$DOMAIN"
+
+      - name: Configure SSH
+        env:
+          KEY: ${{ secrets.EC2_SSH_KEY }}
+          HOST: ${{ vars.EC2_HOST }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/ec2.pem && chmod 600 ~/.ssh/ec2.pem
+          ssh-keyscan -T 15 -H "$HOST" >> ~/.ssh/known_hosts
+
+      - name: Copy code to the server
+        env:
+          TARGET: ${{ vars.EC2_USER || 'ubuntu' }}@${{ vars.EC2_HOST }}
+        run: |
+          rsync -az --delete -e "ssh -i ~/.ssh/ec2.pem" \
+            --exclude '.git/' --exclude 'node_modules/' --exclude '.env' --exclude 'secrets/*.txt' \
+            --exclude 'secrets/*.cnf' --exclude 'docker-compose.override.yml' --exclude 'legacy/uploads/' \
+            --exclude 'backend/uploads/*' --exclude 'terraform/' \
+            ./ "$TARGET:/opt/campusfind/"
+
+      - name: Build & start containers
+        env:
+          TARGET: ${{ vars.EC2_USER || 'ubuntu' }}@${{ vars.EC2_HOST }}
+          APP_DOMAIN: ${{ steps.domain.outputs.domain }}
+        run: |
+          ssh -i ~/.ssh/ec2.pem "$TARGET" \
+            "cd /opt/campusfind && APP_DOMAIN='$APP_DOMAIN' TAG='${GITHUB_SHA::7}' bash deploy/aws-ec2/deploy.sh"
+
+      - name: Smoke test (HTTPS)
+        env:
+          DOMAIN: ${{ steps.domain.outputs.domain }}
+        run: |
+          for i in $(seq 1 24); do
+            if curl -fsS "https://$DOMAIN/nginx-health" && curl -fsS "https://$DOMAIN/api/v1/objects?limit=1" >/dev/null; then
+              echo "✅ https://$DOMAIN is up"; exit 0
+            fi
+            echo "waiting for HTTPS certificate / containers ($i)..."; sleep 10
+          done
+          echo "::error::The site did not answer over HTTPS"; exit 1
