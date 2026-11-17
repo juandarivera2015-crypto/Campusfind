@@ -107,8 +107,8 @@ router.post('/oauth/authorize', authLimiter, async (req, res, next) => {
     const ok = await bcrypt.compare(p.password, hash);
     if (!user || !ok) {
       business.loginAttempts.inc({ result: 'failure' });
-      return redirectWith({ error: 'access_denied', error_description: 'Invalid email or password', state: p.state })
-        || oauthError(res, 401, 'access_denied', 'Invalid email or password.');
+      return redirectWith({ error: 'access_denied', error_description: 'Correo o contraseña incorrectos', state: p.state })
+        || oauthError(res, 401, 'access_denied', 'Correo o contraseña incorrectos.');
     }
     business.loginAttempts.inc({ result: 'success' });
 

@@ -28,6 +28,6 @@ describe('ObjectCard (XSS regression)', () => {
 
   it('shows Delete for the owner and Contact for others', () => {
     render(<ObjectCard obj={base} isOwner onDelete={() => {}} />);
-    expect(screen.getByText('Delete')).toBeInTheDocument();
+    expect(screen.getByText('Eliminar')).toBeInTheDocument();
   });
 });

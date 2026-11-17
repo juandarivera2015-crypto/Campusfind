@@ -18,26 +18,26 @@ export default function Navbar() {
         <Link className="navbar-brand" to="/">
           <span className="brand-icon">🔍</span> CampusFind
         </Link>
-        <button className="navbar-toggler" type="button" aria-label="Toggle navigation" onClick={() => setOpen(!open)}>
+        <button className="navbar-toggler" type="button" aria-label="Abrir menú" onClick={() => setOpen(!open)}>
           <span className="navbar-toggler-icon" />
         </button>
         <div className={`collapse navbar-collapse${open ? ' show' : ''}`}>
           <ul className="navbar-nav me-auto mb-2 mb-lg-0">
-            <li className="nav-item"><NavLink className="nav-link" end to="/">Dashboard</NavLink></li>
-            <li className="nav-item"><NavLink className="nav-link" to="/report">Report Object</NavLink></li>
-            <li className="nav-item"><NavLink className="nav-link" to="/messages">Messages</NavLink></li>
+            <li className="nav-item"><NavLink className="nav-link" end to="/">Inicio</NavLink></li>
+            <li className="nav-item"><NavLink className="nav-link" to="/report">Reportar objeto</NavLink></li>
+            <li className="nav-item"><NavLink className="nav-link" to="/messages">Mensajes</NavLink></li>
           </ul>
           {user ? (
             <div className="d-flex align-items-center gap-3">
               <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.875rem', fontWeight: 600 }}>
                 👋 <span>{user.name}</span>
               </span>
-              <button type="button" className="btn-nav-outline" onClick={onLogout}>Log Out</button>
+              <button type="button" className="btn-nav-outline" onClick={onLogout}>Cerrar sesión</button>
             </div>
           ) : (
             <div className="d-flex gap-2">
-              <Link to="/login" className="btn-nav-outline">Log In</Link>
-              <Link to="/register" className="btn-nav-solid">Sign Up</Link>
+              <Link to="/login" className="btn-nav-outline">Iniciar sesión</Link>
+              <Link to="/register" className="btn-nav-solid">Registrarse</Link>
             </div>
           )}
         </div>

@@ -14,7 +14,7 @@ export default function Register() {
   const submit = async (e) => {
     e.preventDefault();
     if (form.password !== form.confirm_password) {
-      setAlert({ type: 'error', message: 'Passwords do not match.' });
+      setAlert({ type: 'error', message: 'Las contraseñas no coinciden.' });
       return;
     }
     setBusy(true);
@@ -42,18 +42,18 @@ export default function Register() {
       <div className="container px-3">
         <div className="auth-card">
           <div className="auth-logo">🔍 CampusFind</div>
-          <div className="auth-subtitle">Create your student account</div>
+          <div className="auth-subtitle">Crea tu cuenta de estudiante</div>
           <Alert alert={alert} />
           <form onSubmit={submit} noValidate>
-            {field('name', 'Full Name', 'text', 'Your full name', 'name')}
-            {field('email', 'Email Address', 'email', 'you@university.edu', 'email')}
-            {field('password', 'Password', 'password', 'At least 8 characters', 'new-password')}
-            {field('confirm_password', 'Confirm Password', 'password', 'Repeat your password', 'new-password')}
-            <button type="submit" className="btn-primary-cf w-100" style={{ padding: '0.75rem', fontSize: '1rem' }} disabled={busy}>Create Account</button>
+            {field('name', 'Nombre completo', 'text', 'Tu nombre completo', 'name')}
+            {field('email', 'Correo electrónico', 'email', 'tu@universidad.edu', 'email')}
+            {field('password', 'Contraseña', 'password', 'Mínimo 8 caracteres', 'new-password')}
+            {field('confirm_password', 'Confirmar contraseña', 'password', 'Repite tu contraseña', 'new-password')}
+            <button type="submit" className="btn-primary-cf w-100" style={{ padding: '0.75rem', fontSize: '1rem' }} disabled={busy}>Crear cuenta</button>
           </form>
-          <div style={{ textAlign: 'center', margin: '1.5rem 0', fontSize: '0.8rem', color: '#aaa' }}>─── or ───</div>
+          <div style={{ textAlign: 'center', margin: '1.5rem 0', fontSize: '0.8rem', color: '#aaa' }}>─── o ───</div>
           <p style={{ textAlign: 'center', fontSize: '0.875rem', color: '#666' }}>
-            Already have an account? <Link to="/login" style={{ color: 'var(--primary)', fontWeight: 700, textDecoration: 'none' }}>Log In</Link>
+            ¿Ya tienes cuenta? <Link to="/login" style={{ color: 'var(--primary)', fontWeight: 700, textDecoration: 'none' }}>Inicia sesión</Link>
           </p>
         </div>
       </div>

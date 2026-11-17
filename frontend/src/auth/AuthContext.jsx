@@ -57,8 +57,8 @@ export function AuthProvider({ children }) {
       }),
     });
     const body = await res.json();
-    if (!res.ok) throw new Error(body.error_description || 'Login failed');
-    if (body.state !== state) throw new Error('OAuth state mismatch'); // CSRF / mix-up protection
+    if (!res.ok) throw new Error(body.error_description || 'No se pudo iniciar sesión.');
+    if (body.state !== state) throw new Error('El estado de OAuth no coincide. Intenta de nuevo.'); // CSRF / mix-up protection
     await exchangeCode(body.code, verifier);
     return loadMe();
   }, [loadMe]);

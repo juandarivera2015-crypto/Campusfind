@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
-import { formatDate } from '../constants';
+import { formatDate, STATUS_LABELS } from '../constants';
 import { Spinner } from '../components/Loading';
 
 export default function Messages() {
@@ -14,7 +14,7 @@ export default function Messages() {
         setMessages(res.data);
         if (res.unread > 0) await api('/api/v1/messages/read', { method: 'POST' });
       } catch (err) {
-        setError(err.message || 'Failed to load messages.');
+        setError(err.message || 'No se pudieron cargar los mensajes.');
       }
     })();
   }, []);
@@ -26,8 +26,8 @@ export default function Messages() {
     content = (
       <div className="empty-state">
         <div className="empty-icon">📭</div>
-        <h4>No messages yet</h4>
-        <p>When someone contacts you about your posted objects, messages will appear here.</p>
+        <h4>Aún no tienes mensajes</h4>
+        <p>Cuando alguien te escriba sobre los objetos que publicaste, sus mensajes aparecerán aquí.</p>
       </div>
     );
   } else {
@@ -36,7 +36,7 @@ export default function Messages() {
         <div className="d-flex justify-content-between align-items-start">
           <div>
             <div className="msg-sender">{m.sender_name}{m.sender_email && <small className="text-muted"> · {m.sender_email}</small>}</div>
-            <div className="msg-object">Re: <strong>{m.object_name}</strong> ({m.object_status})</div>
+            <div className="msg-object">Sobre: <strong>{m.object_name}</strong> ({STATUS_LABELS[m.object_status] || m.object_status})</div>
             <div className="msg-text">{m.message}</div>
           </div>
           <div className="msg-time">{formatDate(m.created_at)}</div>
@@ -49,9 +49,9 @@ export default function Messages() {
     <>
       <div style={{ background: 'linear-gradient(90deg,var(--primary-dark),var(--primary))', padding: '2.5rem 0' }}>
         <div className="container">
-          <h2 style={{ color: '#fff', fontFamily: "'Raleway',sans-serif", fontWeight: 900, margin: 0 }}>📬 My Inbox</h2>
+          <h2 style={{ color: '#fff', fontFamily: "'Raleway',sans-serif", fontWeight: 900, margin: 0 }}>📬 Mi bandeja de entrada</h2>
           <p style={{ color: 'rgba(255,255,255,0.8)', margin: '0.4rem 0 0', fontSize: '0.95rem' }}>
-            Messages from other students about your posted items.
+            Mensajes de otros estudiantes sobre los objetos que publicaste.
           </p>
         </div>
       </div>

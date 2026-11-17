@@ -19,7 +19,7 @@ const useBlob = () => Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 async function persistImage(file) {
   if (!file) return null;
   const type = detectImageType(file.buffer);
-  if (!type) throw badRequest('Only JPG, PNG, GIF and WebP images are allowed.');
+  if (!type) throw badRequest('Solo se permiten imágenes JPG, PNG, GIF o WebP.');
   if (useBlob()) {
     // Vercel Blob (object storage). Returns a public https URL that is stored in objects.image
     const { put } = await import('@vercel/blob');

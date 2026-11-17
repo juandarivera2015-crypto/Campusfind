@@ -15,8 +15,8 @@ const { CATEGORIES, STATUSES } = LostObject;
 // Postgres LIKE is case-sensitive; MySQL (utf8mb4_unicode_ci) and SQLite are not.
 const LIKE = LostObject.sequelize.getDialect() === 'postgres' ? Op.iLike : Op.like;
 const emptyToUndef = (v) => (v === '' || v === null ? undefined : v);
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD')
-  .refine((d) => !Number.isNaN(Date.parse(d)), 'Invalid date');
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha debe tener el formato AAAA-MM-DD')
+  .refine((d) => !Number.isNaN(Date.parse(d)), 'Fecha no válida');
 
 const listSchema = z.object({
   keyword: z.preprocess(emptyToUndef, z.string().trim().max(100).optional()),
@@ -30,13 +30,13 @@ const listSchema = z.object({
 });
 
 const createSchema = z.object({
-  name: z.string().trim().min(1, 'Object name is required').max(150),
-  description: z.string().trim().min(1, 'Description is required').max(5000),
-  location: z.string().trim().min(1, 'Location is required').max(200),
+  name: z.string().trim().min(1, 'El nombre del objeto es obligatorio').max(150),
+  description: z.string().trim().min(1, 'La descripción es obligatoria').max(5000),
+  location: z.string().trim().min(1, 'El lugar es obligatorio').max(200),
   category: z.preprocess(emptyToUndef, z.enum(CATEGORIES).default('Other')),
   date: isoDate,
   status: z.enum(STATUSES).default('lost'),
-  contact_email: z.preprocess(emptyToUndef, z.string().trim().email('Invalid contact email').max(150).optional()),
+  contact_email: z.preprocess(emptyToUndef, z.string().trim().email('El correo de contacto no es válido').max(150).optional()),
 }).strict();
 
 const updateSchema = z.object({
@@ -93,7 +93,7 @@ router.get('/', validate(listSchema, 'query'), async (req, res, next) => {
 router.get('/:id(\\d+)', async (req, res, next) => {
   try {
     const obj = await LostObject.findByPk(req.params.id, { include: [ownerInclude] });
-    if (!obj) throw notFound('Object not found');
+    if (!obj) throw notFound('Objeto no encontrado');
     res.json({ data: toDTO(obj) });
   } catch (err) { next(err); }
 });
@@ -113,7 +113,7 @@ router.post('/', requireAuth('objects:write'), upload.single('image'), validate(
     business.objectsCreated.inc({ status: obj.status, category: obj.category });
     const fresh = await LostObject.findByPk(obj.id, { include: [ownerInclude] });
     res.status(201).location(`/api/v1/objects/${obj.id}`).json({
-      message: `${obj.status === 'lost' ? 'Lost' : 'Found'} object reported successfully!`,
+      message: obj.status === 'lost' ? '¡Objeto perdido reportado con éxito!' : '¡Objeto encontrado reportado con éxito!',
       data: toDTO(fresh),
     });
   } catch (err) {
@@ -125,8 +125,8 @@ router.post('/', requireAuth('objects:write'), upload.single('image'), validate(
 /** Loads an object and enforces object-level authorization (OWASP API1:2023 BOLA). */
 async function loadOwned(req) {
   const obj = await LostObject.findByPk(req.params.id);
-  if (!obj) throw notFound('Object not found');
-  if (obj.user_id !== req.user.id) throw forbidden('You can only modify your own reports');
+  if (!obj) throw notFound('Objeto no encontrado');
+  if (obj.user_id !== req.user.id) throw forbidden('Solo puedes modificar tus propios reportes');
   return obj;
 }
 
@@ -135,7 +135,7 @@ router.patch('/:id(\\d+)', requireAuth('objects:write'), upload.single('image'),
   try {
     const obj = await loadOwned(req);
     const changes = req.valid.body;
-    if (!Object.keys(changes).length && !req.file) throw badRequest('No changes supplied');
+    if (!Object.keys(changes).length && !req.file) throw badRequest('No se enviaron cambios');
     if (req.file) {
       const newImage = await persistImage(req.file);
       await removeImage(obj.image);
