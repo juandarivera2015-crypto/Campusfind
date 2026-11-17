@@ -1,7 +1,7 @@
 # Container orchestration: Amazon EKS (managed Kubernetes control plane).
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "~> 20.24"
+  version = "~> 21.29"
 
   cluster_name    = "${var.name}-${var.environment}"
   cluster_version = var.kubernetes_version
