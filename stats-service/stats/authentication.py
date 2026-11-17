@@ -36,7 +36,7 @@ class JWTAuthentication(BaseAuthentication):
         if not parts or parts[0].lower() != self.keyword:
             return None
         if len(parts) != 2:
-            raise exceptions.AuthenticationFailed("Invalid Authorization header")
+            raise exceptions.AuthenticationFailed("Cabecera Authorization no válida")
         token = parts[1].decode("ascii", errors="ignore")
         cfg = settings.JWT
         try:
@@ -49,7 +49,7 @@ class JWTAuthentication(BaseAuthentication):
                 options={"require": ["exp", "sub", "iss", "aud"]},
             )
         except jwt.PyJWTError as exc:
-            raise exceptions.AuthenticationFailed("Invalid or expired access token") from exc
+            raise exceptions.AuthenticationFailed("Tu sesión expiró o no es válida. Inicia sesión de nuevo.") from exc
         user = TokenUser(
             id=int(claims["sub"]),
             name=claims.get("name", ""),

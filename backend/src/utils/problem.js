@@ -13,9 +13,9 @@ class HttpError extends Error {
 }
 
 const badRequest = (detail, extra) => new HttpError(400, 'Bad Request', detail, extra);
-const unauthorized = (detail = 'Authentication required') => new HttpError(401, 'Unauthorized', detail);
-const forbidden = (detail = 'You are not allowed to perform this action') => new HttpError(403, 'Forbidden', detail);
-const notFound = (detail = 'Resource not found') => new HttpError(404, 'Not Found', detail);
+const unauthorized = (detail = 'Debes iniciar sesión') => new HttpError(401, 'Unauthorized', detail);
+const forbidden = (detail = 'No tienes permiso para realizar esta acción') => new HttpError(403, 'Forbidden', detail);
+const notFound = (detail = 'Recurso no encontrado') => new HttpError(404, 'Not Found', detail);
 const conflict = (detail) => new HttpError(409, 'Conflict', detail);
 
 module.exports = { HttpError, badRequest, unauthorized, forbidden, notFound, conflict };

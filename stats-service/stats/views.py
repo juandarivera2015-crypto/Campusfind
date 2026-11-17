@@ -55,7 +55,7 @@ class TimelineView(APIView):
     def get(self, request):
         raw = request.query_params.get("days", "30")
         if not raw.isdigit() or not 1 <= int(raw) <= 365:
-            raise ValidationError({"days": "Must be an integer between 1 and 365"})
+            raise ValidationError({"days": "Debe ser un número entero entre 1 y 365"})
         from datetime import date, timedelta
 
         since = date.today() - timedelta(days=int(raw) - 1)

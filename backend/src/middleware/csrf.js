@@ -21,10 +21,10 @@ function issueCsrfToken(res, { secure, maxAge, reuse }) {
 function verifyCsrf(req, _res, next) {
   const cookie = req.cookies?.[CSRF_COOKIE];
   const header = req.get(CSRF_HEADER);
-  if (!cookie || !header) return next(forbidden('Missing CSRF token'));
+  if (!cookie || !header) return next(forbidden('Falta el token CSRF'));
   const a = Buffer.from(cookie);
   const b = Buffer.from(header);
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return next(forbidden('Invalid CSRF token'));
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return next(forbidden('Token CSRF no válido'));
   return next();
 }
 
