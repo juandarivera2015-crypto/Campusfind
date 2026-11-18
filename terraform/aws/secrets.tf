@@ -41,7 +41,7 @@ resource "aws_secretsmanager_secret_version" "app" {
 # IRSA role used by the External Secrets "SecretStore" service account
 module "external_secrets_irsa" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "~> 5.44"
+  version = "~> 6.8"
 
   role_name                                          = "${var.name}-${var.environment}-external-secrets"
   attach_external_secrets_policy                     = true
