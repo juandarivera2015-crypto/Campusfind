@@ -18,6 +18,7 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001
+        fsGroup: 10001          # lets the non-root user read the mounted Secret files (mode 0400)
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: stats
