@@ -19,6 +19,9 @@ spec:
         - name: web
           image: campusfind/web
           ports: [{ name: http, containerPort: 8080 }]
+          env:
+            - { name: API_HOST, value: api.campusfind.svc.cluster.local }
+            - { name: STATS_HOST, value: stats.campusfind.svc.cluster.local }
           resources:
             requests: { cpu: 50m, memory: 32Mi }
             limits:   { cpu: 250m, memory: 128Mi }
