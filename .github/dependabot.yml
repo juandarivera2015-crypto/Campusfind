@@ -1,8 +1,70 @@
+# Dependency updates: one grouped PR per ecosystem with minor/patch versions, into develop.
+# Major versions (breaking changes) are not proposed automatically — upgrade them on purpose.
 version: 2
 updates:
-  - { package-ecosystem: npm, directory: /backend, schedule: { interval: weekly }, target-branch: develop }
-  - { package-ecosystem: npm, directory: /frontend, schedule: { interval: weekly }, target-branch: develop }
-  - { package-ecosystem: pip, directory: /stats-service, schedule: { interval: weekly }, target-branch: develop }
-  - { package-ecosystem: docker, directory: /backend, schedule: { interval: monthly }, target-branch: develop }
-  - { package-ecosystem: github-actions, directory: /, schedule: { interval: monthly }, target-branch: develop }
-  - { package-ecosystem: terraform, directory: /terraform/aws, schedule: { interval: monthly }, target-branch: develop }
+  - package-ecosystem: npm
+    directory: /backend
+    schedule: { interval: weekly }
+    target-branch: develop
+    open-pull-requests-limit: 3
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: weekly }
+    target-branch: develop
+    open-pull-requests-limit: 3
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+  - package-ecosystem: pip
+    directory: /stats-service
+    schedule: { interval: weekly }
+    target-branch: develop
+    open-pull-requests-limit: 3
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+  - package-ecosystem: docker
+    directory: /backend
+    schedule: { interval: monthly }
+    target-branch: develop
+    open-pull-requests-limit: 3
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly }
+    target-branch: develop
+    open-pull-requests-limit: 3
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+  - package-ecosystem: terraform
+    directory: /terraform/aws
+    schedule: { interval: monthly }
+    target-branch: develop
+    open-pull-requests-limit: 3
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']

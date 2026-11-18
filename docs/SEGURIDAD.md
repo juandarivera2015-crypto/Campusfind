@@ -51,6 +51,16 @@
 | API9 | Improper Inventory Management | API versionada (`/api/v1`), OpenAPI como inventario, `/metrics` y `/health` no expuestos por el gateway |
 | API10 | Unsafe Consumption of APIs | Django valida el JWT por su cuenta (no confía en el gateway) |
 
+## Riesgos aceptados (revisión de dependencias, nov. 2026)
+
+`npm audit` reporta hallazgos cuya única corrección es un cambio de versión mayor (*breaking change*).
+Se analizaron y se aceptan temporalmente; el CI bloquea los de severidad **crítica**.
+
+| Paquete | Severidad | Advisory | Por qué no es explotable en CampusFind | Plan |
+|---|---|---|---|---|
+| `zod` 3.x (y la copia interna de `@vercel/blob`) | Alta | GHSA-mrhx-c7xc-m3w5: consumo de memoria al validar colecciones enormes con restricciones | Los esquemas solo validan objetos planos (sin arrays/sets) y Express limita el cuerpo a 100 KB y los formularios a 20 campos | Migrar a zod 4 (cambia la API de mensajes de error) |
+| `uuid` < 11.1.1 (dependencia de Sequelize) | Moderada | GHSA-w5hq-g745-h8pq: falta validación de límites cuando se pasa `buf` | La app no llama a `uuid` con buffer; usa `crypto.randomUUID()` | Esperar versión de Sequelize que actualice `uuid` |
+
 ## Cadena de suministro y secretos
 * CodeQL, Trivy (vulnerabilidades, secretos y *misconfig*), `npm audit`, `pip-audit`, Dependabot.
 * Imágenes ECR inmutables con *scan on push*, SBOM y *provenance* en el build.

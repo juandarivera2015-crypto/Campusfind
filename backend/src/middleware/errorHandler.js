@@ -8,7 +8,6 @@ function notFoundHandler(req, res) {
   });
 }
 
-// eslint-disable-next-line no-unused-vars
 function errorHandler(err, req, res, _next) {
   let status = 500;
   let body = { type: 'about:blank', title: 'Internal Server Error', status, detail: 'Ocurrió un error inesperado. Inténtalo de nuevo.' };

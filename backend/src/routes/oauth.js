@@ -83,7 +83,8 @@ router.post('/oauth/authorize', authLimiter, async (req, res, next) => {
       if (wantsJson) return null;
       const url = new URL(req.body.redirect_uri);
       Object.entries(params).forEach(([k, v]) => v !== undefined && url.searchParams.set(k, v));
-      return res.redirect(302, url.toString());
+      res.redirect(302, url.toString());
+      return true; // response already sent (res.redirect returns undefined)
     };
 
     const parsed = authorizeSchema.safeParse(req.body);
