@@ -14,7 +14,6 @@ resources:
   - web.yaml
   - networkpolicy.yaml
   - ingress.yaml
-images:
-  - { name: campusfind/api,   newName: ghcr.io/juandarivera2015-crypto/campusfind/api,   newTag: latest }
-  - { name: campusfind/stats, newName: ghcr.io/juandarivera2015-crypto/campusfind/stats, newTag: latest }
-  - { name: campusfind/web,   newName: ghcr.io/juandarivera2015-crypto/campusfind/web,   newTag: latest }
+# No `images:` here on purpose: each overlay maps campusfind/{api,stats,web} to its registry/tag
+# (local -> campusfind/*:local built by docker compose, aws -> ECR). Renaming in the base would hide
+# the original names from the overlays' image transformers.

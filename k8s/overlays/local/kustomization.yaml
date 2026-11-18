@@ -12,6 +12,27 @@ secretGenerator:
     envs: [secrets.env]          # git-ignored
     options: { disableNameSuffixHash: true }
 patches:
+  # Local access through `kubectl port-forward svc/web 8081:80` -> http://localhost:8081
+  - target: { kind: ConfigMap, name: campusfind-config }
+    patch: |-
+      - op: replace
+        path: /data/PUBLIC_URL
+        value: http://localhost:8081
+      - op: replace
+        path: /data/CORS_ORIGINS
+        value: http://localhost:8081
+      - op: replace
+        path: /data/OAUTH_REDIRECT_URIS
+        value: http://localhost:8081/callback
+      - op: replace
+        path: /data/COOKIE_SECURE
+        value: "false"
+  # MySQL needs ~1 min to start: give the migration Job more retries
+  - target: { kind: Job, name: api-migrate }
+    patch: |-
+      - op: replace
+        path: /spec/backoffLimit
+        value: 10
   - target: { kind: PersistentVolumeClaim, name: api-uploads }
     patch: |-
       - op: replace
