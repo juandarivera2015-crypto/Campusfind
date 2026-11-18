@@ -118,7 +118,7 @@ jobs:
           for o in local aws; do kubectl kustomize k8s/overlays/$o > /tmp/$o.yaml; done
           curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz
           ./kubeconform -strict -summary -ignore-missing-schemas /tmp/local.yaml /tmp/aws.yaml
-      - run: ./scripts/generate-secrets.sh && docker compose -f docker-compose.yml config -q
+      - run: bash scripts/generate-secrets.sh && docker compose -f docker-compose.yml config -q
 
   security:
     name: Security scan (Trivy)
@@ -143,7 +143,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Create throw-away secrets
-        run: ./scripts/generate-secrets.sh
+        run: bash scripts/generate-secrets.sh
       - name: Start the stack
         run: |
           cp docker-compose.override.example.yml docker-compose.override.yml

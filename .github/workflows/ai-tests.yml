@@ -25,7 +25,7 @@ jobs:
         run: node ai-testing/generate-cases.mjs --spec backend/src/docs/openapi.yaml --out ai-testing/generated/cases.ai.json
       - name: Run them against an ephemeral stack
         run: |
-          ./scripts/generate-secrets.sh
+          bash scripts/generate-secrets.sh
           cp docker-compose.override.example.yml docker-compose.override.yml
           docker compose up -d --build --wait db api stats web
           node ai-testing/run-cases.mjs --base-url http://localhost:8080 --cases ai-testing/generated --junit ai-report.xml || true

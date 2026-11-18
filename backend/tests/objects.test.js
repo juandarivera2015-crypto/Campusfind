@@ -37,7 +37,7 @@ describe('Objects API', () => {
     expect(c.headers.location).toMatch(/\/api\/v1\/objects\/\d+/);
     expect(c.body.data.image).toMatch(/^uploads\/obj_[0-9a-f-]+\.png$/);
     expect(c.body.data.contact_email).toBe('alice@uni.edu');
-    await create(alice, { name: 'Keys', status: 'found', category: 'Keys' });
+    await create(alice, { name: 'Keys', description: 'Silver keys on a ring', status: 'found', category: 'Keys' });
 
     const all = await request(app).get('/api/v1/objects');
     expect(all.body.total).toBe(2);
